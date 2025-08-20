@@ -1,139 +1,88 @@
-# streamlit_leaf_disease_app.py
-
 import streamlit as st
-import numpy as np
-from PIL import Image
-import pandas as pd
 import tensorflow as tf
+import numpy as np
+import pandas as pd
 import gdown
-import os, zipfile
-
-st.set_page_config(page_title="🌿 Plant Leaf Disease Classifier", layout="centered")
+import os
+import zipfile
+from PIL import Image
 
 # ---------------- CONFIG ----------------
-# Your Google Drive File ID (from "share link")
-# Example link: https://drive.google.com/file/d/<FILE_ID>/view?usp=sharing
 GOOGLE_DRIVE_FILE_ID = "1IgXN5-6nzWmI0XTTGqxcNpYaBgN8o89W"
-
-# Local paths
-MODEL_H5_PATH = "plant_disease_model.h5"
-MODEL_FOLDER_PATH = "plant_disease_model"  # for SavedModel format
+MODEL_ZIP_PATH = "plant_disease_model.zip"
+MODEL_DIR = "plant_disease_model"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
-IMG_SIZE = (224, 224)
+IMG_SIZE = (224, 224)  # adjust if your model used a different input size
 
-# ---------------- HELPERS ----------------
-def download_from_drive(file_id, output_path):
-    """Download file from Google Drive if not already cached."""
-    if not os.path.exists(output_path):
-        st.info("📥 Downloading model from Google Drive (first run only)...")
-        url = f"https://drive.google.com/uc?id={file_id}"
-        gdown.download(url, output_path, quiet=False)
-    return output_path
-
-def extract_zip(zip_path, extract_to="."):
-    """Unzip model folder if provided as a .zip."""
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(extract_to)
-
-@st.cache_data
-def load_mapping(path: str):
-    df = pd.read_excel(path)
-    if "class_index" in df.columns:
-        df = df.sort_values("class_index")
-    return df.reset_index(drop=True)
-
+# ---------------- DOWNLOAD & EXTRACT MODEL ----------------
 @st.cache_resource
 def load_model():
-    """
-    Try loading as:
-    1. TensorFlow SavedModel (zipped folder)
-    2. Keras .h5 (with compile=False)
-    """
-    # Case A: zipped SavedModel (future-proof)
-    zip_path = "model.zip"
-    if GOOGLE_DRIVE_FILE_ID and GOOGLE_DRIVE_FILE_ID.endswith("zip"):
-        download_from_drive(GOOGLE_DRIVE_FILE_ID, zip_path)
-        extract_zip(zip_path, ".")
-        return tf.keras.models.load_model(MODEL_FOLDER_PATH)
+    if not os.path.exists(MODEL_DIR):
+        # Download from Google Drive
+        url = f"https://drive.google.com/uc?id={GOOGLE_DRIVE_FILE_ID}"
+        gdown.download(url, MODEL_ZIP_PATH, quiet=False)
 
-    # Case B: plain .h5
-    local_model_path = download_from_drive(GOOGLE_DRIVE_FILE_ID, MODEL_H5_PATH)
-    return tf.keras.models.load_model(local_model_path, compile=False)
+        # Extract zip
+        with zipfile.ZipFile(MODEL_ZIP_PATH, "r") as zip_ref:
+            zip_ref.extractall(".")
 
-def preprocess_image(img: Image.Image, target_size=IMG_SIZE):
-    img = img.convert("RGB").resize(target_size)
-    arr = np.array(img).astype("float32") / 255.0
-    arr = np.expand_dims(arr, axis=0)
-    return arr
+    # Load TensorFlow SavedModel
+    model = tf.keras.models.load_model(MODEL_DIR, compile=False)
+    return model
 
-def predict_image(model, arr, class_names):
-    preds = model.predict(arr)
-    probs = tf.nn.softmax(preds, axis=1).numpy()
-    top_idx = int(np.argmax(probs[0]))
-    top_conf = float(probs[0][top_idx])
-    top3_idx = np.argsort(-probs[0])[:3]
-    top3 = [(class_names[i], float(probs[0][i])) for i in top3_idx]
-    return top_idx, top_conf, top3
-
-# ---------------- UI ----------------
-st.title("🌿 Plant Leaf Disease Classifier")
-st.write("Upload a plant leaf photo to classify the disease, view confidence, and receive a treatment recommendation.")
-
-# Load mapping
-try:
-    mapping_df = load_mapping(MAPPING_XLSX)
-    class_names = mapping_df["label"].tolist()
-except Exception as e:
-    st.error(f"❌ Failed to load mapping file: {e}")
-    st.stop()
-
-# Load model (from Drive)
-try:
-    model = load_model()
-except Exception as e:
-    st.error(f"❌ Failed to load model: {e}")
-    st.info("Tip: If using a zipped SavedModel, upload it as a .zip to Drive and update GOOGLE_DRIVE_FILE_ID.")
-    st.stop()
-
-# Upload image
-uploaded = st.file_uploader("📷 Upload a leaf image (JPG/PNG)", type=["jpg", "jpeg", "png"])
-if uploaded:
-    image = Image.open(uploaded)
-    st.image(image, caption="Uploaded Image", use_column_width=True)
-
-    arr = preprocess_image(image)
-    with st.spinner("🔍 Running inference..."):
-        top_idx, top_conf, top3 = predict_image(model, arr, class_names)
-
-    pred_label = class_names[top_idx]
-
-    st.subheader("Prediction")
-    st.write(f"**Label:** {pred_label}")
-    st.write(f"**Confidence:** {top_conf:.2%}")
-
-    with st.expander("Top-3 predictions"):
-        for name, p in top3:
-            st.write(f"- {name} — {p:.2%}")
-
-    # Treatment lookup
-    row = mapping_df.iloc[top_idx]
-    severity = row.get("severity", "low")
-    message = row.get("response_message", "")
-
-    if severity in ("critical", "high"):
-        st.error(message)
-    elif severity == "medium":
-        st.warning(message)
+# ---------------- LOAD TREATMENT RESPONSES ----------------
+@st.cache_data
+def load_responses():
+    if os.path.exists(MAPPING_XLSX):
+        df = pd.read_excel(MAPPING_XLSX)
+        mapping = dict(zip(df["Label"], df["Treatment"]))
     else:
-        st.success(message)
+        mapping = {}
+    return mapping
 
-    with st.expander("Details"):
-        st.json({
-            "category": row.get("category", ""),
-            "severity": severity,
-            "plant": row.get("plant", ""),
-            "disease_name": row.get("disease_name", ""),
-            "action_code": row.get("action_code", "")
-        })
+# ---------------- PREPROCESS IMAGE ----------------
+def preprocess_image(image):
+    img = image.resize(IMG_SIZE)
+    img_array = np.array(img) / 255.0
+    if len(img_array.shape) == 2:  # grayscale
+        img_array = np.stack([img_array]*3, axis=-1)
+    img_array = np.expand_dims(img_array, axis=0)
+    return img_array
 
-st.caption("⚙️ Model is downloaded once from Google Drive and cached.")
+# ---------------- STREAMLIT APP ----------------
+st.title("🌿 Plant Leaf Disease Detection")
+st.write("Upload a plant leaf image to detect disease, confidence, and suggested treatment.")
+
+uploaded_file = st.file_uploader("Upload a leaf image", type=["jpg", "jpeg", "png"])
+if uploaded_file is not None:
+    image = Image.open(uploaded_file).convert("RGB")
+    st.image(image, caption="Uploaded Leaf Image", use_column_width=True)
+
+    with st.spinner("Loading model..."):
+        model = load_model()
+        responses = load_responses()
+
+    # Preprocess & Predict
+    img_array = preprocess_image(image)
+    preds = model.predict(img_array)
+    predicted_idx = np.argmax(preds[0])
+    confidence = float(np.max(preds[0]) * 100)
+
+    # Handle class labels
+    if hasattr(model, "classes_"):  # sklearn-style
+        predicted_label = model.classes_[predicted_idx]
+    elif "class_names" in model.__dict__:
+        predicted_label = model.class_names[predicted_idx]
+    else:
+        # fallback to integer label
+        predicted_label = str(predicted_idx)
+
+    # Show results
+    st.subheader("Prediction Results")
+    st.write(f"**Predicted Disease:** {predicted_label}")
+    st.write(f"**Confidence:** {confidence:.2f}%")
+
+    # Treatment suggestion
+    treatment = responses.get(predicted_label, "No treatment information available.")
+    st.subheader("Treatment Recommendation")
+    st.write(treatment)
