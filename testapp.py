@@ -15,7 +15,7 @@ st.set_page_config(page_title="🌿 Plant Leaf Disease Classifier", layout="cent
 # Example: https://drive.google.com/file/d/<FILE_ID>/view?usp=sharing
 GOOGLE_DRIVE_FILE_ID = "https://drive.google.com/file/d/1zFYPwWNKEZBUATunXEDzIkPlFvVK8VeW/view?usp=drive_link"
 MODEL_LOCAL_PATH = "plant_disease_model.h5"
-MAPPING_XLSX = "leaf_disease_responses.csv"
+MAPPING_XLSX = "leaf_disease_responses.xlsx"
 IMG_SIZE = (224, 224)  # match training pipeline
 
 # ---------------- HELPERS ----------------
