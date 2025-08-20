@@ -1,5 +1,6 @@
 import streamlit as st
 import tensorflow as tf
+import keras
 import numpy as np
 import pandas as pd
 import gdown
@@ -26,8 +27,8 @@ def load_model():
         with zipfile.ZipFile(MODEL_ZIP_PATH, "r") as zip_ref:
             zip_ref.extractall(".")
 
-    # Load TensorFlow SavedModel
-    model = tf.keras.models.load_model(MODEL_DIR, compile=False)
+    # ✅ Use TFSMLayer instead of load_model (Keras 3 fix)
+    model = keras.layers.TFSMLayer(MODEL_DIR, call_endpoint="serving_default")
     return model
 
 # ---------------- LOAD TREATMENT RESPONSES ----------------
@@ -46,7 +47,7 @@ def preprocess_image(image):
     img_array = np.array(img) / 255.0
     if len(img_array.shape) == 2:  # grayscale
         img_array = np.stack([img_array]*3, axis=-1)
-    img_array = np.expand_dims(img_array, axis=0)
+    img_array = np.expand_dims(img_array, axis=0).astype(np.float32)
     return img_array
 
 # ---------------- STREAMLIT APP ----------------
@@ -64,18 +65,16 @@ if uploaded_file is not None:
 
     # Preprocess & Predict
     img_array = preprocess_image(image)
-    preds = model.predict(img_array)
+
+    # ✅ Call TFSMLayer directly
+    preds_dict = model(img_array)
+    preds = preds_dict["predictions"].numpy()  # "predictions" usually the output key
+
     predicted_idx = np.argmax(preds[0])
     confidence = float(np.max(preds[0]) * 100)
 
-    # Handle class labels
-    if hasattr(model, "classes_"):  # sklearn-style
-        predicted_label = model.classes_[predicted_idx]
-    elif "class_names" in model.__dict__:
-        predicted_label = model.class_names[predicted_idx]
-    else:
-        # fallback to integer label
-        predicted_label = str(predicted_idx)
+    # Label mapping
+    predicted_label = str(predicted_idx)
 
     # Show results
     st.subheader("Prediction Results")
