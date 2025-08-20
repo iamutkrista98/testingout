@@ -5,33 +5,26 @@ import numpy as np
 import pandas as pd
 import gdown
 import os
-import zipfile
 from PIL import Image
 
 # ---------------- CONFIG ----------------
-GOOGLE_DRIVE_FILE_ID = "1IgXN5-6nzWmI0XTTGqxcNpYaBgN8o89W"
-MODEL_ZIP_PATH = "plant_disease_model.zip"
-MODEL_DIR = "plant_disease_model"
+GOOGLE_DRIVE_FILE_ID = "1Ttkd63o8AMkSU5WToJd_aNUm3O9H5lny"  # your original h5 file id
+MODEL_PATH = "plant_disease_model.h5"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
-IMG_SIZE = (224, 224)  # adjust if your model used a different input size
+IMG_SIZE = (224, 224)
 
-# ---------------- DOWNLOAD & EXTRACT MODEL ----------------
+# ---------------- DOWNLOAD MODEL ----------------
 @st.cache_resource
 def load_model():
-    if not os.path.exists(MODEL_DIR):
-        # Download from Google Drive
+    if not os.path.exists(MODEL_PATH):
         url = f"https://drive.google.com/uc?id={GOOGLE_DRIVE_FILE_ID}"
-        gdown.download(url, MODEL_ZIP_PATH, quiet=False)
+        gdown.download(url, MODEL_PATH, quiet=False)
 
-        # Extract zip
-        with zipfile.ZipFile(MODEL_ZIP_PATH, "r") as zip_ref:
-            zip_ref.extractall(".")
-
-    # ✅ Use TFSMLayer instead of load_model (Keras 3 fix)
-    model = keras.layers.TFSMLayer(MODEL_DIR, call_endpoint="serving_default")
+    # ✅ Keras 3 can still load .h5
+    model = keras.models.load_model(MODEL_PATH, compile=False)
     return model
 
-# ---------------- LOAD TREATMENT RESPONSES ----------------
+# ---------------- LOAD RESPONSES ----------------
 @st.cache_data
 def load_responses():
     if os.path.exists(MAPPING_XLSX):
@@ -45,7 +38,7 @@ def load_responses():
 def preprocess_image(image):
     img = image.resize(IMG_SIZE)
     img_array = np.array(img) / 255.0
-    if len(img_array.shape) == 2:  # grayscale
+    if len(img_array.shape) == 2:
         img_array = np.stack([img_array]*3, axis=-1)
     img_array = np.expand_dims(img_array, axis=0).astype(np.float32)
     return img_array
@@ -63,25 +56,18 @@ if uploaded_file is not None:
         model = load_model()
         responses = load_responses()
 
-    # Preprocess & Predict
+    # Prediction
     img_array = preprocess_image(image)
-
-    # ✅ Call TFSMLayer directly
-    preds_dict = model(img_array)
-    preds = preds_dict["predictions"].numpy()  # "predictions" usually the output key
-
+    preds = model.predict(img_array)
     predicted_idx = np.argmax(preds[0])
     confidence = float(np.max(preds[0]) * 100)
 
-    # Label mapping
     predicted_label = str(predicted_idx)
 
-    # Show results
     st.subheader("Prediction Results")
     st.write(f"**Predicted Disease:** {predicted_label}")
     st.write(f"**Confidence:** {confidence:.2f}%")
 
-    # Treatment suggestion
     treatment = responses.get(predicted_label, "No treatment information available.")
     st.subheader("Treatment Recommendation")
     st.write(treatment)
