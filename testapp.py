@@ -13,7 +13,7 @@ st.set_page_config(page_title="🌿 Plant Leaf Disease Classifier", layout="cent
 # ---------------- CONFIG ----------------
 # Google Drive File ID of your .h5 model
 # Example: https://drive.google.com/file/d/<FILE_ID>/view?usp=sharing
-GOOGLE_DRIVE_FILE_ID = "1scsCON1A7waXxLZBYmF4vyEw-HDmVbuX"
+GOOGLE_DRIVE_FILE_ID = "1Ttkd63o8AMkSU5WToJd_aNUm3O9H5lny"
 MODEL_LOCAL_PATH = "plant_disease_model.h5"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
 IMG_SIZE = (224, 224)  # match training pipeline
