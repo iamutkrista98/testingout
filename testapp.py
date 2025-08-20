@@ -11,8 +11,6 @@ import os
 st.set_page_config(page_title="🌿 Plant Leaf Disease Classifier", layout="centered")
 
 # ---------------- CONFIG ----------------
-# Google Drive File ID of your .h5 model
-# Example: https://drive.google.com/file/d/<FILE_ID>/view?usp=sharing
 GOOGLE_DRIVE_FILE_ID = "1scsCON1A7waXxLZBYmF4vyEw-HDmVbuX"
 MODEL_LOCAL_PATH = "Plant_Village_Detection_Model.h5"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
@@ -22,23 +20,35 @@ IMG_SIZE = (224, 224)  # match training pipeline
 def download_model_from_drive(file_id, output_path):
     """Download the model from Google Drive if not already cached."""
     if not os.path.exists(output_path):
-        st.info("Downloading model from Google Drive... (first time only)")
-        url = f"https://drive.google.com/uc?id={file_id}"
-        gdown.download(url, output_path, quiet=False)
+        st.info("📥 Downloading model from Google Drive... (first time only)")
+        url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        try:
+            gdown.download(url, output_path, quiet=False)
+            if not os.path.exists(output_path):
+                raise FileNotFoundError("Download failed or file not saved.")
+        except Exception as e:
+            st.error(f"❌ Model download failed: {e}")
+            st.stop()
     return output_path
 
 @st.cache_data
 def load_mapping(path: str):
-    df = pd.read_excel(path)
-    if "class_index" in df.columns:
-        df = df.sort_values("class_index")
-    return df.reset_index(drop=True)
+    try:
+        df = pd.read_excel(path, engine="openpyxl")
+        if "class_index" in df.columns:
+            df = df.sort_values("class_index")
+        return df.reset_index(drop=True)
+    except Exception as e:
+        raise RuntimeError(f"Mapping file error: {e}")
 
 @st.cache_resource
 def load_model():
     local_model_path = download_model_from_drive(GOOGLE_DRIVE_FILE_ID, MODEL_LOCAL_PATH)
-    model = tf.keras.models.load_model(local_model_path)
-    return model
+    try:
+        model = tf.keras.models.load_model(local_model_path)
+        return model
+    except Exception as e:
+        raise RuntimeError(f"Model loading error: {e}")
 
 def preprocess_image(img: Image.Image, target_size=IMG_SIZE):
     img = img.convert("RGB").resize(target_size)
@@ -64,14 +74,14 @@ try:
     mapping_df = load_mapping(MAPPING_XLSX)
     class_names = mapping_df["label"].tolist()
 except Exception as e:
-    st.error(f"Failed to load mapping file: {e}")
+    st.error(f"❌ Failed to load mapping file: {e}")
     st.stop()
 
 # Load model (download if needed)
 try:
     model = load_model()
 except Exception as e:
-    st.error(f"Failed to load model: {e}")
+    st.error(f"❌ Failed to load model: {e}")
     st.stop()
 
 # Upload image
@@ -81,7 +91,7 @@ if uploaded:
     st.image(image, caption="Uploaded Image", use_column_width=True)
 
     arr = preprocess_image(image)
-    with st.spinner("Running inference..."):
+    with st.spinner("🔍 Running inference..."):
         top_idx, top_conf, top3 = predict_image(model, arr, class_names)
 
     pred_label = class_names[top_idx]
