@@ -37,7 +37,7 @@ def load_mapping(path: str):
 @st.cache_resource
 def load_model():
     local_model_path = download_model_from_drive(GOOGLE_DRIVE_FILE_ID, MODEL_LOCAL_PATH)
-    model = tf.keras.models.load_model(local_model_path)
+    model = tf.keras.models.load_model(local_model_path, compile=False)
     return model
 
 def preprocess_image(img: Image.Image, target_size=IMG_SIZE):
