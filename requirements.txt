@@ -3,7 +3,9 @@ tensorflow
 keras
 pillow
 pandas
+opencv-python
 openpyxl
+
 
 
 
