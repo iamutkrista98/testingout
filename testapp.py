@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 import keras
+import io
 
 # ---------------- CONFIG ----------------
 MODEL_PATH = "clean_model1.keras"
@@ -21,34 +22,32 @@ label_map, treatment_map = load_mappings()
 
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(uploaded_file):
-    # Load image and force RGB conversion
+    # Load image
     img = Image.open(uploaded_file)
     
-    # Convert to RGB (3 channels) if not already
+    # Convert to RGB if not already (handles grayscale, RGBA, etc.)
     if img.mode != 'RGB':
         img = img.convert('RGB')
     
+    # Resize to expected dimensions
     img = img.resize(IMG_SIZE)
-
-    # Convert to array and normalize
-    img_array = np.asarray(img, dtype=np.float32) / 255.0
-
-    # Validate shape
+    
+    # Convert to numpy array
+    img_array = np.array(img) / 255.0
+    
+    # Ensure we have the right shape (224, 224, 3)
     if img_array.shape != (224, 224, 3):
-        # If somehow we still have wrong shape, convert to 3 channels
-        if len(img_array.shape) == 2:  # Grayscale
+        # If we somehow have a different shape, fix it
+        if len(img_array.shape) == 2:  # Grayscale (H, W)
             img_array = np.stack((img_array,) * 3, axis=-1)
+        elif img_array.shape[2] == 1:  # Grayscale with channel dimension (H, W, 1)
+            img_array = np.repeat(img_array, 3, axis=-1)
         elif img_array.shape[2] == 4:  # RGBA
             img_array = img_array[:, :, :3]
-        
-        # Resize if needed
-        if img_array.shape[:2] != (224, 224):
-            img_pil = Image.fromarray((img_array * 255).astype(np.uint8))
-            img_pil = img_pil.resize((224, 224))
-            img_array = np.asarray(img_pil, dtype=np.float32) / 255.0
-
+    
     # Add batch dimension
-    img_array = np.expand_dims(img_array, axis=0)  # Shape: (1, 224, 224, 3)
+    img_array = np.expand_dims(img_array, axis=0)
+    
     return img_array, img
 
 # ---------------- STREAMLIT UI ----------------
@@ -70,6 +69,10 @@ if uploaded_file:
 
             # Preprocess and predict
             img_array, display_img = preprocess_image(uploaded_file)
+            
+            # Debug: Check the shape of the image array
+            st.write(f"Image shape: {img_array.shape}")
+            
             preds = model.predict(img_array)
             predicted_idx = int(np.argmax(preds[0]))
             confidence = float(np.max(preds[0]) * 100)
