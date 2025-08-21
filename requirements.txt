@@ -1,10 +1,9 @@
 streamlit
 tensorflow
-keras
 pillow
 pandas
-opencv-python-headless
 openpyxl
+
 
 
 
