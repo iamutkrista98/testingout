@@ -7,8 +7,8 @@ import gdown
 import os
 
 # ---------------- CONFIG ----------------
-KERAS_MODEL_FILE_ID = "1jGCwRGwO2bTbvZQS_3yodaeyLjdPx5JQ"  # Replace with your actual .keras model file ID
-XLSX_FILE_ID = "1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO"         # Replace with your actual Excel file ID
+KERAS_MODEL_FILE_ID = "1jGCwRGwO2bTbvZQS_3yodaeyLjdPx5JQ"  # Your model file ID
+XLSX_FILE_ID = "1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO"         # Your Excel file ID
 
 MODEL_PATH = "Plant_Village_Detection_Model.keras"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
@@ -40,11 +40,15 @@ def load_mappings():
         return {}, {}
 
 # ---------------- PREPROCESS IMAGE ----------------
-def preprocess_image(image_path):
-    img = Image.open(image_path).resize((224, 224)).convert("RGB")  # Force RGB
-    img_array = np.asarray(img, dtype=np.float32) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)  # Shape: (1, 224, 224, 3)
-    return img_array
+def preprocess_image(image):
+    try:
+        img = image.resize(IMG_SIZE).convert("RGB")  # Ensure RGB and correct size
+        img_array = np.asarray(img, dtype=np.float32) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)  # Shape: (1, 224, 224, 3)
+        return img_array
+    except Exception as e:
+        st.error(f"Image preprocessing failed: {e}")
+        return None
 
 # ---------------- STREAMLIT APP ----------------
 st.set_page_config(page_title="🌿 Plant Disease Detector", layout="centered")
@@ -62,19 +66,22 @@ if uploaded_file is not None:
 
     img_array = preprocess_image(image)
     if img_array is not None:
-        preds = model.predict(img_array)
-        predicted_idx = int(np.argmax(preds[0]))
-        confidence = float(np.max(preds[0]) * 100)
+        if img_array.shape[-1] != 3:
+            st.error(f"Expected 3 channels (RGB), but got shape {img_array.shape}")
+        else:
+            preds = model.predict(img_array)
+            predicted_idx = int(np.argmax(preds[0]))
+            confidence = float(np.max(preds[0]) * 100)
 
-        predicted_disease = label_map.get(predicted_idx, f"Unknown class {predicted_idx}")
-        treatment = treatment_map.get(predicted_disease, "No treatment information available.")
+            predicted_disease = label_map.get(predicted_idx, f"Unknown class {predicted_idx}")
+            treatment = treatment_map.get(predicted_disease, "No treatment information available.")
 
-        st.subheader("🔍 Prediction Results")
-        st.markdown(f"**🦠 Disease:** `{predicted_disease}`")
-        st.markdown(f"**📊 Confidence:** `{confidence:.2f}%`")
+            st.subheader("🔍 Prediction Results")
+            st.markdown(f"**🦠 Disease:** `{predicted_disease}`")
+            st.markdown(f"**📊 Confidence:** `{confidence:.2f}%`")
 
-        st.subheader("💊 Treatment Recommendation")
-        st.info(treatment)
+            st.subheader("💊 Treatment Recommendation")
+            st.info(treatment)
     else:
         st.error("❌ Could not process the image. Please try a different one.")
 else:
