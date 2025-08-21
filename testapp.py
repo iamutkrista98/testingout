@@ -42,12 +42,11 @@ def preprocess_image(image):
     try:
         img = image.resize(IMG_SIZE).convert("RGB")
         img_array = np.array(img, dtype=np.float32) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
+        img_array = np.expand_dims(img_array, axis=0).astype(np.float32)  # 👈 Explicit cast here
         return img_array
     except Exception as e:
         st.error(f"Image preprocessing failed: {e}")
         return None
-
 # ---------------- STREAMLIT APP ----------------
 st.set_page_config(page_title="🌿 Plant Disease Detector", layout="centered")
 st.title("🌿 Plant Leaf Disease Detection")
