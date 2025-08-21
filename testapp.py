@@ -20,22 +20,25 @@ def load_mappings():
 label_map, treatment_map = load_mappings()
 
 # ---------------- PREPROCESS IMAGE ----------------
+IMG_SIZE = (224, 224)  # ✅ Correct size for your model
+
 def preprocess_image(uploaded_file):
+    # Load image and force RGB conversion
     img = Image.open(uploaded_file)
-
-    # Ensure RGB conversion before resizing
-    if img.mode != "RGB":
-        img = img.convert("RGB")
-
+    img = img.convert("RGB")  # ✅ Ensure 3 channels
     img = img.resize(IMG_SIZE)
+
+    # Convert to array and normalize
     img_array = np.asarray(img, dtype=np.float32) / 255.0
 
     # Validate shape
-    if img_array.shape[-1] != 3:
-        raise ValueError(f"Expected 3 channels, got shape {img_array.shape}")
+    if img_array.shape != (224, 224, 3):
+        raise ValueError(f"Invalid image shape: {img_array.shape}. Expected (224, 224, 3)")
 
+    # Add batch dimension
     img_array = np.expand_dims(img_array, axis=0)  # Shape: (1, 224, 224, 3)
     return img_array, img
+
 
 # ---------------- STREAMLIT UI ----------------
 st.set_page_config(page_title="Leaf Disease Detector", layout="centered")
