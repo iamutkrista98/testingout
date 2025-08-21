@@ -3,21 +3,33 @@ import keras
 import numpy as np
 import pandas as pd
 from PIL import Image
+import gdown
 import os
 
 # ---------------- CONFIG ----------------
+MODEL_FILE_ID = "1yn35ZX_h8wiyfsnqSvTmdkIUrA5J5DYK"  # Replace with your actual model file ID
+XLSX_FILE_ID = "1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO"               # Replace with your actual Excel file ID
+
 MODEL_PATH = "Plant_Village_Detection_Model.h5"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
 IMG_SIZE = (224, 224)
 
+# ---------------- DOWNLOAD FILES ----------------
+def download_from_drive(file_id, output_path):
+    if not os.path.exists(output_path):
+        url = f"https://drive.google.com/uc?id={file_id}"
+        gdown.download(url, output_path, quiet=False)
+
 # ---------------- LOAD MODEL ----------------
 @st.cache_resource
 def load_model():
+    download_from_drive(MODEL_FILE_ID, MODEL_PATH)
     return keras.models.load_model(MODEL_PATH, compile=False)
 
 # ---------------- LOAD LABELS & RESPONSES ----------------
 @st.cache_data
 def load_mappings():
+    download_from_drive(XLSX_FILE_ID, MAPPING_XLSX)
     try:
         df = pd.read_excel(MAPPING_XLSX)
         label_map = dict(zip(df["class_index"], df["disease_name"]))
