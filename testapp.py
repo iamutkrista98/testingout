@@ -30,14 +30,14 @@ label_map, treatment_map = load_mappings()
 def preprocess_image(uploaded_file):
     img = Image.open(uploaded_file)
 
-    # Force RGB conversion BEFORE resizing
+    # Ensure RGB conversion before resizing
     if img.mode != "RGB":
         img = img.convert("RGB")
 
     img = img.resize(IMG_SIZE)
     img_array = np.asarray(img, dtype=np.float32) / 255.0
 
-    # Validate shape: should be (224, 224, 3)
+    # Validate shape
     if img_array.shape[-1] != 3:
         raise ValueError(f"Expected 3 channels, got shape {img_array.shape}")
 
@@ -52,26 +52,30 @@ st.markdown("Upload a leaf image to detect disease and get treatment advice.")
 uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
-    with st.spinner("Analyzing image..."):
-        img_array, display_img = preprocess_image(uploaded_file)
+    try:
+        with st.spinner("Analyzing image..."):
+            img_array, display_img = preprocess_image(uploaded_file)
 
-        # ✅ Only run prediction after image is uploaded
-        preds = model.predict(img_array)
-        predicted_idx = int(np.argmax(preds[0]))
-        confidence = float(np.max(preds[0]) * 100)
+            # Run prediction
+            preds = model.predict(img_array)
+            predicted_idx = int(np.argmax(preds[0]))
+            confidence = float(np.max(preds[0]) * 100)
 
-        predicted_disease = label_map.get(predicted_idx, f"Unknown class {predicted_idx}")
-        treatment = treatment_map.get(predicted_disease, "No treatment information available.")
+            predicted_disease = label_map.get(predicted_idx, f"Unknown class {predicted_idx}")
+            treatment = treatment_map.get(predicted_disease, "No treatment information available.")
 
-    # ---------------- DISPLAY RESULTS ----------------
-    st.image(display_img, caption="Uploaded Leaf", use_column_width=True)
-    st.subheader("🔍 Prediction Results")
-    st.markdown(f"**Disease:** {predicted_disease}")
-    st.markdown(f"**Confidence:** {confidence:.2f}%")
+        # ---------------- DISPLAY RESULTS ----------------
+        st.image(display_img, caption="Uploaded Leaf", use_column_width=True)
+        st.subheader("🔍 Prediction Results")
+        st.markdown(f"**Disease:** {predicted_disease}")
+        st.markdown(f"**Confidence:** {confidence:.2f}%")
 
-    st.subheader("💊 Treatment Recommendation")
-    st.markdown(treatment)
+        st.subheader("💊 Treatment Recommendation")
+        st.markdown(treatment)
 
-    st.success("Diagnosis complete. Follow the treatment plan above.")
+        st.success("Diagnosis complete. Follow the treatment plan above.")
+
+    except Exception as e:
+        st.error(f"⚠️ Error during processing: {e}")
 else:
     st.info("Please upload a leaf image to begin.")
