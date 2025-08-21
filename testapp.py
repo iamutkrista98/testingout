@@ -42,16 +42,16 @@ def load_mappings():
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(image):
     try:
-        # Resize to 224x224 and convert to RGB (3 channels)
+        # ✅ Resize to 224x224 and convert to RGB (3 channels)
         img = image.resize((224, 224)).convert("RGB")
 
-        # Convert to NumPy array and normalize
+        # ✅ Convert to NumPy array with correct dtype
         img_array = np.array(img, dtype=np.float32) / 255.0
 
-        # Add batch dimension → shape becomes (1, 224, 224, 3)
+        # ✅ Add batch dimension → shape becomes (1, 224, 224, 3)
         img_array = np.expand_dims(img_array, axis=0)
 
-        # Final shape check
+        # ✅ Final shape check
         if img_array.shape != (1, 224, 224, 3):
             raise ValueError(f"Final image shape invalid: {img_array.shape}")
 
