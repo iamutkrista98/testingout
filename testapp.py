@@ -8,8 +8,8 @@ import os
 from PIL import Image
 
 # ---------------- CONFIG ----------------
-GOOGLE_DRIVE_FILE_ID = "1Ttkd63o8AMkSU5WToJd_aNUm3O9H5lny"  # your original h5 file id
-MODEL_PATH = "plant_disease_model.h5"
+GOOGLE_DRIVE_FILE_ID = "1yn35ZX_h8wiyfsnqSvTmdkIUrA5J5DYK"  # your original h5 file id
+MODEL_PATH = "Plant_Village_Detection_Model.h5"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
 IMG_SIZE = (224, 224)
 
