@@ -42,15 +42,24 @@ def load_mappings():
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(image):
     try:
-        img = image.convert("RGB").resize(IMG_SIZE)
+        # Resize to 224x224 and convert to RGB (3 channels)
+        img = image.resize((224, 224)).convert("RGB")
+
+        # Convert to NumPy array and normalize
         img_array = np.array(img, dtype=np.float32) / 255.0
+
+        # Add batch dimension → shape becomes (1, 224, 224, 3)
         img_array = np.expand_dims(img_array, axis=0)
+
+        # Final shape check
         if img_array.shape != (1, 224, 224, 3):
-            raise ValueError(f"Unexpected image shape: {img_array.shape}")
+            raise ValueError(f"Final image shape invalid: {img_array.shape}")
+
         return img_array
     except Exception as e:
         st.error(f"Image preprocessing failed: {e}")
         return None
+
 
 # ---------------- STREAMLIT APP ----------------
 st.set_page_config(page_title="🌿 Plant Disease Detector", layout="centered")
