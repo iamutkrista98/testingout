@@ -42,9 +42,25 @@ def load_mappings():
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(image):
     try:
+        # Convert to RGB and resize
         img = image.convert("RGB").resize(IMG_SIZE)
-        img_array = np.array(img, dtype=np.float32) / 255.0
+
+        # Convert to NumPy array and validate shape
+        img_array = np.array(img, dtype=np.float32)
+
+        if img_array.ndim != 3 or img_array.shape != (224, 224, 3):
+            raise ValueError(f"Unexpected image shape: {img_array.shape}")
+
+        # Normalize pixel values
+        img_array /= 255.0
+
+        # Add batch dimension
         img_array = np.expand_dims(img_array, axis=0)
+
+        # Final shape should be (1, 224, 224, 3)
+        if img_array.shape != (1, 224, 224, 3):
+            raise ValueError(f"Final image shape invalid: {img_array.shape}")
+
         return img_array
     except Exception as e:
         st.error(f"Image preprocessing failed: {e}")
