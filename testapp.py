@@ -9,13 +9,6 @@ MODEL_PATH = "clean_model1.keras"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
 IMG_SIZE = (224, 224)
 
-# ---------------- LOAD MODEL ----------------
-@st.cache_resource
-def load_model():
-    return keras.models.load_model(MODEL_PATH, compile=False)
-
-model = load_model()
-
 # ---------------- LOAD LABELS & RESPONSES ----------------
 @st.cache_data
 def load_mappings():
@@ -54,9 +47,15 @@ uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", 
 if uploaded_file:
     try:
         with st.spinner("Analyzing image..."):
-            img_array, display_img = preprocess_image(uploaded_file)
+            # ✅ Load model only when needed
+            @st.cache_resource
+            def load_model():
+                return keras.models.load_model(MODEL_PATH, compile=False)
 
-            # Run prediction
+            model = load_model()
+
+            # Preprocess and predict
+            img_array, display_img = preprocess_image(uploaded_file)
             preds = model.predict(img_array)
             predicted_idx = int(np.argmax(preds[0]))
             confidence = float(np.max(preds[0]) * 100)
