@@ -7,7 +7,7 @@ import pandas as pd
 # --- Constants ---
 MODEL_PATH = "clean_model1.keras"
 EXCEL_PATH = "leaf_disease_responses.xlsx"
-IMG_SIZE = (225, 225)
+IMG_SIZE = (224, 224)
 
 # --- Load Model ---
 @st.cache_resource
@@ -27,7 +27,7 @@ mapping_df = load_mapping()
 # --- Preprocess Image ---
 def preprocess_image(image):
     try:
-        # Ensure image is RGB
+        # Ensure RGB
         if image.mode != "RGB":
             image = image.convert("RGB")
 
@@ -39,7 +39,7 @@ def preprocess_image(image):
         img_array = np.expand_dims(img_array, axis=0)
 
         # Validate shape
-        if img_array.shape != (1, 225, 225, 3):
+        if img_array.shape != (1, 224, 224, 3):
             raise ValueError(f"Invalid image shape: {img_array.shape}")
 
         return img_array
@@ -50,7 +50,7 @@ def preprocess_image(image):
 # --- Predict Disease ---
 def predict_disease(img_array):
     preds = model.predict(img_array)
-    predicted_class = np.argmax(preds, axis=1)[0]
+    predicted_class = int(np.argmax(preds, axis=1)[0])
     confidence = float(np.max(preds))
     return predicted_class, confidence
 
@@ -65,10 +65,11 @@ def get_treatment_info(class_id):
         return "Unknown", "No treatment info available"
 
 # --- Streamlit UI ---
+st.set_page_config(page_title="Plant Disease Classifier", page_icon="🌿", layout="centered")
 st.title("🌿 Plant Leaf Disease Classifier")
 st.markdown("Upload a leaf image to detect the disease and get treatment advice.")
 
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("📷 Choose an image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
@@ -79,6 +80,7 @@ if uploaded_file:
         class_id, confidence = predict_disease(img_array)
         disease, treatment = get_treatment_info(class_id)
 
+        st.success("✅ Prediction Complete")
         st.subheader("🧪 Prediction Result")
         st.write(f"**Disease:** {disease}")
         st.write(f"**Confidence:** {confidence:.2%}")
