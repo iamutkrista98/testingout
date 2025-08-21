@@ -46,7 +46,6 @@ def preprocess_image(image):
     st.write(f"✅ Final image dtype: {img_array.dtype}")
 
     return img_array
-
 # ---------------- STREAMLIT APP ----------------
 st.set_page_config(page_title="Plant Disease Classifier", page_icon="🌿", layout="centered")
 st.title("🌿 Plant Leaf Disease Detection")
