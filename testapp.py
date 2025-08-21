@@ -45,11 +45,15 @@ def preprocess_image(image):
         # Convert to RGB and resize
         img = image.convert("RGB").resize(IMG_SIZE)
 
-        # Convert to NumPy array and validate shape
-        img_array = np.array(img, dtype=np.float32)
+        # Convert to NumPy array with correct dtype
+        img_array = np.array(img)
 
-        if img_array.ndim != 3 or img_array.shape != (224, 224, 3):
-            raise ValueError(f"Unexpected image shape: {img_array.shape}")
+        # Validate that it's a numeric array
+        if not np.issubdtype(img_array.dtype, np.number):
+            raise ValueError(f"Image array has invalid dtype: {img_array.dtype}")
+
+        # Convert to float32 explicitly
+        img_array = img_array.astype(np.float32)
 
         # Normalize pixel values
         img_array /= 255.0
@@ -57,7 +61,7 @@ def preprocess_image(image):
         # Add batch dimension
         img_array = np.expand_dims(img_array, axis=0)
 
-        # Final shape should be (1, 224, 224, 3)
+        # Final shape check
         if img_array.shape != (1, 224, 224, 3):
             raise ValueError(f"Final image shape invalid: {img_array.shape}")
 
