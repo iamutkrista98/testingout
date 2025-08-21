@@ -7,10 +7,10 @@ import gdown
 import os
 
 # ---------------- CONFIG ----------------
-KERAS_MODEL_FILE_ID = "1jGCwRGwO2bTbvZQS_3yodaeyLjdPx5JQ"  # Replace with your actual model file ID
-XLSX_FILE_ID = "1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO"         # Replace with your actual Excel file ID
+H5_MODEL_FILE_ID = "1yn35ZX_h8wiyfsnqSvTmdkIUrA5J5DYK"       # Replace with your actual .h5 model file ID
+XLSX_FILE_ID = "1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO"           # Replace with your actual Excel file ID
 
-MODEL_PATH = "clean_model.keras"
+MODEL_PATH = "Plant_Village_Detection_Model.h5"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
 IMG_SIZE = (224, 224)
 
@@ -23,10 +23,10 @@ def download_from_drive(file_id, output_path):
 # ---------------- LOAD MODEL ----------------
 @st.cache_resource
 def load_model():
-    download_from_drive(KERAS_MODEL_FILE_ID, MODEL_PATH)
+    download_from_drive(H5_MODEL_FILE_ID, MODEL_PATH)
     if not os.path.exists(MODEL_PATH):
         raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
-    return keras.models.load_model(MODEL_PATH)
+    return keras.models.load_model(MODEL_PATH, compile=False)
 
 # ---------------- LOAD LABELS & RESPONSES ----------------
 @st.cache_data
