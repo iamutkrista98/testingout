@@ -40,15 +40,11 @@ def load_mappings():
         return {}, {}
 
 # ---------------- PREPROCESS IMAGE ----------------
-def preprocess_image(image):
-    try:
-        img = image.convert("RGB").resize(IMG_SIZE)
-        img_array = np.array(img, dtype=np.float32) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
-        return img_array
-    except Exception as e:
-        st.error(f"Image preprocessing failed: {e}")
-        return None
+def preprocess_image(image_path):
+    img = Image.open(image_path).resize((224, 224)).convert("RGB")  # Force RGB
+    img_array = np.asarray(img, dtype=np.float32) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)  # Shape: (1, 224, 224, 3)
+    return img_array
 
 # ---------------- STREAMLIT APP ----------------
 st.set_page_config(page_title="🌿 Plant Disease Detector", layout="centered")
@@ -57,7 +53,7 @@ st.write("Upload a leaf image to detect disease, confidence, and treatment advic
 
 uploaded_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
 if uploaded_file is not None:
-    image = Image.open(uploaded_file)
+    image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Uploaded Leaf Image", use_column_width=True)
 
     with st.spinner("🔄 Loading model and mappings..."):
