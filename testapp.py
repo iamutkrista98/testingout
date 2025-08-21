@@ -13,7 +13,6 @@ MAPPING_XLSX = "leaf_disease_responses.xlsx"
 IMG_SIZE = (224, 224)
 
 # ---------------- DOWNLOAD MODEL ----------------
-@st.cache_resource
 def load_model():
     if not os.path.exists(MODEL_PATH):
         url = f"https://drive.google.com/uc?id={GOOGLE_DRIVE_FILE_ID}"
@@ -61,7 +60,7 @@ if uploaded_file is not None:
     # Prediction
     img_array = preprocess_image(image)
     preds = model.predict(img_array)
-    predicted_idx = np.argmax(preds[0])
+    predicted_idx = int(np.argmax(preds[0]))
     confidence = float(np.max(preds[0]) * 100)
 
     predicted_label = str(predicted_idx)
