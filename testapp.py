@@ -5,7 +5,7 @@ import requests
 import os
 
 # Google Drive file ID
-FILE_ID = "1PsWiPaVBUP-T0X-r3B2uYlaiC3PLGMt6"
+FILE_ID = "1jGCwRGwO2bTbvZQS_3yodaeyLjdPx5JQ"
 
 @st.cache_resource
 def load_model():
