@@ -27,9 +27,21 @@ mapping_df = load_mapping()
 # --- Preprocess Image ---
 def preprocess_image(image):
     try:
-        img = image.convert("RGB").resize(IMG_SIZE)
-        img_array = np.array(img, dtype=np.float32) / 255.0
+        # Ensure image is RGB
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
+        # Resize and normalize
+        image = image.resize(IMG_SIZE)
+        img_array = np.array(image, dtype=np.float32) / 255.0
+
+        # Add batch dimension
         img_array = np.expand_dims(img_array, axis=0)
+
+        # Validate shape
+        if img_array.shape != (1, 225, 225, 3):
+            raise ValueError(f"Invalid image shape: {img_array.shape}")
+
         return img_array
     except Exception as e:
         st.error(f"Image preprocessing failed: {e}")
