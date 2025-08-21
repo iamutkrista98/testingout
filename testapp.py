@@ -21,54 +21,21 @@ def download_from_drive(file_id, output_path):
         gdown.download(url, output_path, quiet=False)
 
 # ---------------- LOAD MODEL ----------------
-@st.cache_resource
-def load_model():
-    download_from_drive(MODEL_FILE_ID, MODEL_PATH)
-    return keras.models.load_model(MODEL_PATH, compile=False)
+download_from_drive(MODEL_FILE_ID, MODEL_PATH)
+model = keras.models.load_model(MODEL_PATH, compile=False)
 
-# ---------------- LOAD LABELS & RESPONSES ----------------
-@st.cache_data
-def load_mappings():
-    download_from_drive(XLSX_FILE_ID, MAPPING_XLSX)
-    try:
-        df = pd.read_excel(MAPPING_XLSX)
-        label_map = dict(zip(df["class_index"], df["disease_name"]))
-        treatment_map = dict(zip(df["disease_name"], df["response_message"]))
-        return label_map, treatment_map
-    except Exception as e:
-        st.error(f"Error loading Excel file: {e}")
-        return {}, {}
+# ---------------- LOAD MAPPINGS ----------------
+download_from_drive(XLSX_FILE_ID, MAPPING_XLSX)
+df = pd.read_excel(MAPPING_XLSX)
+label_map = dict(zip(df["class_index"], df["disease_name"]))
+treatment_map = dict(zip(df["disease_name"], df["response_message"]))
 
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(image):
-    try:
-        # Convert to RGB and resize
-        img = image.convert("RGB").resize(IMG_SIZE)
-
-        # Convert to NumPy array with correct dtype
-        img_array = np.array(img)
-
-        # Validate that it's a numeric array
-        if not np.issubdtype(img_array.dtype, np.number):
-            raise ValueError(f"Image array has invalid dtype: {img_array.dtype}")
-
-        # Convert to float32 explicitly
-        img_array = img_array.astype(np.float32)
-
-        # Normalize pixel values
-        img_array /= 255.0
-
-        # Add batch dimension
-        img_array = np.expand_dims(img_array, axis=0)
-
-        # Final shape check
-        if img_array.shape != (1, 224, 224, 3):
-            raise ValueError(f"Final image shape invalid: {img_array.shape}")
-
-        return img_array
-    except Exception as e:
-        st.error(f"Image preprocessing failed: {e}")
-        return None
+    img = image.convert("RGB").resize(IMG_SIZE)
+    img_array = np.array(img, dtype=np.float32) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+    return img_array
 
 # ---------------- STREAMLIT APP ----------------
 st.set_page_config(page_title="🌿 Plant Disease Detector", layout="centered")
@@ -80,26 +47,23 @@ if uploaded_file is not None:
     image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded Leaf Image", use_column_width=True)
 
-    with st.spinner("🔄 Loading model and mappings..."):
-        model = load_model()
-        label_map, treatment_map = load_mappings()
-
     img_array = preprocess_image(image)
-    if img_array is not None:
-        preds = model.predict(img_array)
-        predicted_idx = int(np.argmax(preds[0]))
-        confidence = float(np.max(preds[0]) * 100)
 
-        predicted_disease = label_map.get(predicted_idx, f"Unknown class {predicted_idx}")
-        treatment = treatment_map.get(predicted_disease, "No treatment information available.")
+    st.write(f"✅ Image dtype: {img_array.dtype}")
+    st.write(f"✅ Image shape: {img_array.shape}")
 
-        st.subheader("🔍 Prediction Results")
-        st.markdown(f"**🦠 Disease:** `{predicted_disease}`")
-        st.markdown(f"**📊 Confidence:** `{confidence:.2f}%`")
+    preds = model.predict(img_array)
+    predicted_idx = int(np.argmax(preds[0]))
+    confidence = float(np.max(preds[0]) * 100)
 
-        st.subheader("💊 Treatment Recommendation")
-        st.info(treatment)
-    else:
-        st.error("❌ Could not process the image. Please try a different one.")
+    predicted_disease = label_map.get(predicted_idx, f"Unknown class {predicted_idx}")
+    treatment = treatment_map.get(predicted_disease, "No treatment information available.")
+
+    st.subheader("🔍 Prediction Results")
+    st.markdown(f"**🦠 Disease:** `{predicted_disease}`")
+    st.markdown(f"**📊 Confidence:** `{confidence:.2f}%`")
+
+    st.subheader("💊 Treatment Recommendation")
+    st.info(treatment)
 else:
     st.warning("Please upload a leaf image to begin diagnosis.")
