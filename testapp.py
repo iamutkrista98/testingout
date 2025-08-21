@@ -26,49 +26,56 @@ def load_model():
 def load_responses():
     if os.path.exists(MAPPING_XLSX):
         df = pd.read_excel(MAPPING_XLSX)
-        mapping = dict(zip(df["Label"], df["Treatment"]))
+        mapping = {
+            str(row["Label"]): {
+                "disease": row["Disease"],
+                "treatment": row["Treatment"]
+            }
+            for _, row in df.iterrows()
+        }
     else:
         mapping = {}
     return mapping
 
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(image):
-    # Ensure RGB format and resize
     img = image.resize(IMG_SIZE).convert("RGB")
-
-    # Convert to NumPy array and normalize
     img_array = np.asarray(img, dtype=np.float32) / 255.0
-
-    # Add batch dimension
     img_array = np.expand_dims(img_array, axis=0)
-
     return img_array
 
 # ---------------- STREAMLIT APP ----------------
+st.set_page_config(page_title="🌿 Plant Disease Detector", layout="centered")
 st.title("🌿 Plant Leaf Disease Detection")
 st.write("Upload a plant leaf image to detect disease, confidence, and suggested treatment.")
 
-uploaded_file = st.file_uploader("Upload a leaf image", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("📤 Upload a leaf image", type=["jpg", "jpeg", "png"])
 if uploaded_file is not None:
     image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded Leaf Image", use_column_width=True)
 
-    with st.spinner("Loading model..."):
+    with st.spinner("🔄 Loading model and data..."):
         model = load_model()
         responses = load_responses()
 
     # Prediction
     img_array = preprocess_image(image)
     preds = model.predict(img_array)
-    predicted_idx = int(np.argmax(preds[0]))
+    predicted_idx = str(int(np.argmax(preds[0])))
     confidence = float(np.max(preds[0]) * 100)
 
-    predicted_label = str(predicted_idx)
+    # Lookup disease and treatment
+    result = responses.get(predicted_idx, {
+        "disease": "Unknown",
+        "treatment": "No treatment information available."
+    })
 
+    # Display results
     st.subheader("🔍 Prediction Results")
-    st.write(f"**Predicted Disease:** {predicted_label}")
-    st.write(f"**Confidence:** {confidence:.2f}%")
+    st.markdown(f"**🦠 Disease:** `{result['disease']}`")
+    st.markdown(f"**📊 Confidence:** `{confidence:.2f}%`")
 
-    treatment = responses.get(predicted_label, "No treatment information available.")
     st.subheader("💊 Treatment Recommendation")
-    st.write(treatment)
+    st.info(result["treatment"])
+else:
+    st.warning("Please upload a leaf image to begin diagnosis.")
