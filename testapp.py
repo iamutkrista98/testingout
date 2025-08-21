@@ -10,7 +10,7 @@ import os
 KERAS_MODEL_FILE_ID = "1jGCwRGwO2bTbvZQS_3yodaeyLjdPx5JQ"  # Replace with your actual .keras model file ID
 XLSX_FILE_ID = "1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO"         # Replace with your actual Excel file ID
 
-MODEL_PATH = "clean_model.keras"
+MODEL_PATH = "Plant_Village_Detection_Model.keras"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
 IMG_SIZE = (224, 224)
 
@@ -26,7 +26,7 @@ def load_model():
     download_from_drive(KERAS_MODEL_FILE_ID, MODEL_PATH)
     return keras.models.load_model(MODEL_PATH)
 
-# ---------------- LOAD MAPPINGS ----------------
+# ---------------- LOAD LABELS & RESPONSES ----------------
 @st.cache_data
 def load_mappings():
     download_from_drive(XLSX_FILE_ID, MAPPING_XLSX)
@@ -42,30 +42,9 @@ def load_mappings():
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(image):
     try:
-        # Force RGB conversion and exact resizing
-        img = image.convert("RGB").resize((224, 224))
-
-        # Convert to NumPy array
-        img_array = np.array(img)
-
-        # Debug: show shape and dtype
-        st.write(f"🧪 Raw image shape: {img_array.shape}")
-        st.write(f"🧪 Raw image dtype: {img_array.dtype}")
-
-        # Validate shape
-        if img_array.shape != (224, 224, 3):
-            raise ValueError(f"Unexpected image shape: {img_array.shape}")
-
-        # Normalize and cast to float32
-        img_array = img_array.astype(np.float32) / 255.0
-
-        # Add batch dimension
+        img = image.convert("RGB").resize(IMG_SIZE)
+        img_array = np.array(img, dtype=np.float32) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
-
-        # Final shape check
-        st.write(f"✅ Final image shape: {img_array.shape}")
-        st.write(f"✅ Final image dtype: {img_array.dtype}")
-
         return img_array
     except Exception as e:
         st.error(f"Image preprocessing failed: {e}")
