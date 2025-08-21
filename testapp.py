@@ -29,7 +29,7 @@ def load_responses():
 
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(image):
-    # Force RGB mode
+    # Force RGB mode (3 channels)
     image = image.convert("RGB")
 
     # Resize to match model input
