@@ -1,59 +1,75 @@
 import streamlit as st
-import keras
-import tempfile
-import gdown
-import os
 import numpy as np
 from PIL import Image
+from tensorflow.keras.models import load_model
+import pandas as pd
 
-# Google Drive file ID for your .keras model
-FILE_ID = "1PsWiPaVBUP-T0X-r3B2uYlaiC3PLGMt6"
+# --- Constants ---
+MODEL_PATH = "clean_model1.keras"
+EXCEL_PATH = "disease_mapping.xlsx"
+IMG_SIZE = (225, 225)
 
-# Optional: Map predicted class index to disease name
-class_names = {
-    0: "Healthy",
-    1: "Powdery Mildew",
-    2: "Leaf Spot",
-    3: "Rust",
-    4: "Blight"
-    # Add more if needed
-}
-
+# --- Load Model ---
 @st.cache_resource
-def load_model():
-    # Create a temporary directory and file path
-    temp_dir = tempfile.mkdtemp()
-    model_path = os.path.join(temp_dir, "clean_model1.keras")
+def load_plant_model():
+    return load_model(MODEL_PATH)
 
-    # Download the model using gdown
-    gdown.download(f"https://drive.google.com/uc?id={FILE_ID}", model_path, quiet=False)
+model = load_plant_model()
 
-    # Load the model using Keras
-    model = keras.models.load_model(model_path, compile=False)
-    return model
+# --- Load Mapping ---
+@st.cache_data
+def load_mapping():
+    df = pd.read_excel(EXCEL_PATH)
+    return df
 
-# Load the model once
-model = load_model()
+mapping_df = load_mapping()
 
-# Streamlit UI
+# --- Preprocess Image ---
+def preprocess_image(image):
+    try:
+        img = image.convert("RGB").resize(IMG_SIZE)
+        img_array = np.array(img, dtype=np.float32) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)
+        return img_array
+    except Exception as e:
+        st.error(f"Image preprocessing failed: {e}")
+        return None
+
+# --- Predict Disease ---
+def predict_disease(img_array):
+    preds = model.predict(img_array)
+    predicted_class = np.argmax(preds, axis=1)[0]
+    confidence = float(np.max(preds))
+    return predicted_class, confidence
+
+# --- Map to Treatment ---
+def get_treatment_info(class_id):
+    row = mapping_df[mapping_df["ClassID"] == class_id]
+    if not row.empty:
+        disease = row.iloc[0]["Disease"]
+        treatment = row.iloc[0]["Treatment"]
+        return disease, treatment
+    else:
+        return "Unknown", "No treatment info available"
+
+# --- Streamlit UI ---
 st.title("🌿 Plant Leaf Disease Classifier")
-st.markdown("Upload a leaf image and let the model identify the disease.")
+st.markdown("Upload a leaf image to detect the disease and get treatment advice.")
 
-uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
-    image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Uploaded Leaf", use_column_width=True)
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Uploaded Image", use_column_width=True)
 
-    # Preprocess image
-    img = image.resize((224, 224))  # Adjust if your model expects a different size
-    img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
+    img_array = preprocess_image(image)
+    if img_array is not None:
+        class_id, confidence = predict_disease(img_array)
+        disease, treatment = get_treatment_info(class_id)
 
-    # Predict
-    prediction = model.predict(img_array)
-    predicted_class = int(np.argmax(prediction))
+        st.subheader("🧪 Prediction Result")
+        st.write(f"**Disease:** {disease}")
+        st.write(f"**Confidence:** {confidence:.2%}")
 
-    # Display result
-    disease_name = class_names.get(predicted_class, f"Class {predicted_class}")
-    st.success(f"🧠 Predicted Disease: **{disease_name}**")
+        st.subheader("💊 Suggested Treatment")
+        st.write(treatment)
