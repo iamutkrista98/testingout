@@ -10,7 +10,7 @@ import os
 KERAS_MODEL_FILE_ID = "1jGCwRGwO2bTbvZQS_3yodaeyLjdPx5JQ"  # Replace with your actual model file ID
 XLSX_FILE_ID = "1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO"         # Replace with your actual Excel file ID
 
-MODEL_PATH = "Plant_Village_Detection_Model.keras"
+MODEL_PATH = "clean_model.keras"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
 IMG_SIZE = (224, 224)
 
