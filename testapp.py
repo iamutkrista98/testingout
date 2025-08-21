@@ -6,7 +6,7 @@ import pandas as pd
 
 # --- Constants ---
 MODEL_PATH = "clean_model1.keras"
-EXCEL_PATH = "disease_mapping.xlsx"
+EXCEL_PATH = "leaf_disease_responses.xlsx"
 IMG_SIZE = (225, 225)
 
 # --- Load Model ---
