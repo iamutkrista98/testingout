@@ -1,5 +1,4 @@
 import streamlit as st
-import tensorflow as tf
 import keras
 import numpy as np
 import pandas as pd
@@ -8,7 +7,7 @@ import os
 from PIL import Image
 
 # ---------------- CONFIG ----------------
-GOOGLE_DRIVE_FILE_ID = "1yn35ZX_h8wiyfsnqSvTmdkIUrA5J5DYK"  # your original h5 file id
+GOOGLE_DRIVE_FILE_ID = "1yn35ZX_h8wiyfsnqSvTmdkIUrA5J5DYK"  # your .h5 file ID
 MODEL_PATH = "Plant_Village_Detection_Model.h5"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
 IMG_SIZE = (224, 224)
@@ -20,7 +19,6 @@ def load_model():
         url = f"https://drive.google.com/uc?id={GOOGLE_DRIVE_FILE_ID}"
         gdown.download(url, MODEL_PATH, quiet=False)
 
-    # ✅ Keras 3 can still load .h5
     model = keras.models.load_model(MODEL_PATH, compile=False)
     return model
 
@@ -37,10 +35,17 @@ def load_responses():
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(image):
     img = image.resize(IMG_SIZE)
-    img_array = np.array(img) / 255.0
-    if len(img_array.shape) == 2:
+    img_array = np.array(img)
+
+    # Handle grayscale and RGBA formats
+    if img_array.ndim == 2:  # grayscale
         img_array = np.stack([img_array]*3, axis=-1)
-    img_array = np.expand_dims(img_array, axis=0).astype(np.float32)
+    elif img_array.shape[-1] == 4:  # RGBA
+        img_array = img_array[..., :3]
+
+    img_array = img_array / 255.0
+    img_array = img_array.astype(np.float32)
+    img_array = np.expand_dims(img_array, axis=0)
     return img_array
 
 # ---------------- STREAMLIT APP ----------------
@@ -64,10 +69,10 @@ if uploaded_file is not None:
 
     predicted_label = str(predicted_idx)
 
-    st.subheader("Prediction Results")
+    st.subheader("🔍 Prediction Results")
     st.write(f"**Predicted Disease:** {predicted_label}")
     st.write(f"**Confidence:** {confidence:.2f}%")
 
     treatment = responses.get(predicted_label, "No treatment information available.")
-    st.subheader("Treatment Recommendation")
+    st.subheader("💊 Treatment Recommendation")
     st.write(treatment)
