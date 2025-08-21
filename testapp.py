@@ -3,7 +3,7 @@ import keras
 import numpy as np
 import pandas as pd
 from PIL import Image
-import requests
+import gdown
 import os
 
 # ---------------- CONFIG ----------------
@@ -17,18 +17,15 @@ IMG_SIZE = (224, 224)
 # ---------------- DOWNLOAD FILES ----------------
 def download_from_drive(file_id, output_path):
     if not os.path.exists(output_path):
-        url = f"https://drive.google.com/uc?export=download&id={file_id}"
-        response = requests.get(url)
-        if response.status_code == 200:
-            with open(output_path, "wb") as f:
-                f.write(response.content)
-        else:
-            raise Exception(f"Failed to download file. Status code: {response.status_code}")
+        url = f"https://drive.google.com/uc?id={file_id}"
+        gdown.download(url, output_path, quiet=False)
 
 # ---------------- LOAD MODEL ----------------
 @st.cache_resource
 def load_model():
     download_from_drive(KERAS_MODEL_FILE_ID, MODEL_PATH)
+    if not os.path.exists(MODEL_PATH):
+        raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
     return keras.models.load_model(MODEL_PATH)
 
 # ---------------- LOAD LABELS & RESPONSES ----------------
