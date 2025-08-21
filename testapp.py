@@ -29,7 +29,7 @@ def load_responses():
 
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(image):
-    # Ensure RGB mode
+    # Force RGB mode (3 channels)
     if image.mode != "RGB":
         image = image.convert("RGB")
 
@@ -42,7 +42,7 @@ def preprocess_image(image):
     # Add batch dimension
     img_array = np.expand_dims(img_array, axis=0)
 
-    # Final shape check (optional)
+    # Final shape check (optional but helpful)
     if img_array.shape != (1, 224, 224, 3):
         raise ValueError(f"Invalid image shape: {img_array.shape}")
 
