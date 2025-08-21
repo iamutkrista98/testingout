@@ -34,18 +34,15 @@ def load_responses():
 
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(image):
-    img = image.resize(IMG_SIZE)
-    img_array = np.array(img)
+    # Ensure RGB format and resize
+    img = image.resize(IMG_SIZE).convert("RGB")
 
-    # Handle grayscale and RGBA formats
-    if img_array.ndim == 2:  # grayscale
-        img_array = np.stack([img_array]*3, axis=-1)
-    elif img_array.shape[-1] == 4:  # RGBA
-        img_array = img_array[..., :3]
+    # Convert to NumPy array and normalize
+    img_array = np.asarray(img, dtype=np.float32) / 255.0
 
-    img_array = img_array / 255.0
-    img_array = img_array.astype(np.float32)
+    # Add batch dimension
     img_array = np.expand_dims(img_array, axis=0)
+
     return img_array
 
 # ---------------- STREAMLIT APP ----------------
@@ -54,7 +51,7 @@ st.write("Upload a plant leaf image to detect disease, confidence, and suggested
 
 uploaded_file = st.file_uploader("Upload a leaf image", type=["jpg", "jpeg", "png"])
 if uploaded_file is not None:
-    image = Image.open(uploaded_file).convert("RGB")
+    image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded Leaf Image", use_column_width=True)
 
     with st.spinner("Loading model..."):
