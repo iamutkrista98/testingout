@@ -3,8 +3,9 @@ tensorflow
 keras
 pillow
 pandas
-opencv-python
+opencv-python-headless
 openpyxl
+
 
 
 
