@@ -54,6 +54,8 @@ uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", 
 if uploaded_file:
     with st.spinner("Analyzing image..."):
         img_array, display_img = preprocess_image(uploaded_file)
+
+        # ✅ Only run prediction after image is uploaded
         preds = model.predict(img_array)
         predicted_idx = int(np.argmax(preds[0]))
         confidence = float(np.max(preds[0]) * 100)
