@@ -2,39 +2,30 @@ import streamlit as st
 import keras
 import numpy as np
 import pandas as pd
-import gdown
-import os
 from PIL import Image
+import os
 
 # ---------------- CONFIG ----------------
-GOOGLE_DRIVE_FILE_ID = "1yn35ZX_h8wiyfsnqSvTmdkIUrA5J5DYK"
 MODEL_PATH = "Plant_Village_Detection_Model.h5"
 MAPPING_XLSX = "leaf_disease_responses.xlsx"
 IMG_SIZE = (224, 224)
 
-# ---------------- DOWNLOAD MODEL ----------------
+# ---------------- LOAD MODEL ----------------
+@st.cache_resource
 def load_model():
-    if not os.path.exists(MODEL_PATH):
-        url = f"https://drive.google.com/uc?id={GOOGLE_DRIVE_FILE_ID}"
-        gdown.download(url, MODEL_PATH, quiet=False)
-    model = keras.models.load_model(MODEL_PATH, compile=False)
-    return model
+    return keras.models.load_model(MODEL_PATH, compile=False)
 
-# ---------------- LOAD RESPONSES ----------------
+# ---------------- LOAD LABELS & RESPONSES ----------------
 @st.cache_data
-def load_responses():
-    if os.path.exists(MAPPING_XLSX):
+def load_mappings():
+    try:
         df = pd.read_excel(MAPPING_XLSX)
-        mapping = {
-            str(row["Label"]): {
-                "disease": row["Disease"],
-                "treatment": row["Treatment"]
-            }
-            for _, row in df.iterrows()
-        }
-    else:
-        mapping = {}
-    return mapping
+        label_map = dict(zip(df["class_index"], df["disease_name"]))
+        treatment_map = dict(zip(df["disease_name"], df["response_message"]))
+        return label_map, treatment_map
+    except Exception as e:
+        st.error(f"Error loading Excel file: {e}")
+        return {}, {}
 
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(image):
@@ -57,27 +48,25 @@ if uploaded_file is not None:
     image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded Leaf Image", use_column_width=True)
 
-    with st.spinner("🔄 Loading model and data..."):
+    with st.spinner("🔄 Loading model and mappings..."):
         model = load_model()
-        responses = load_responses()
+        label_map, treatment_map = load_mappings()
 
     img_array = preprocess_image(image)
     if img_array is not None:
         preds = model.predict(img_array)
-        predicted_idx = str(int(np.argmax(preds[0])))
+        predicted_idx = int(np.argmax(preds[0]))
         confidence = float(np.max(preds[0]) * 100)
 
-        result = responses.get(predicted_idx, {
-            "disease": "Unknown",
-            "treatment": "No treatment information available."
-        })
+        predicted_disease = label_map.get(predicted_idx, f"Unknown class {predicted_idx}")
+        treatment = treatment_map.get(predicted_disease, "No treatment information available.")
 
         st.subheader("🔍 Prediction Results")
-        st.markdown(f"**🦠 Disease:** `{result['disease']}`")
+        st.markdown(f"**🦠 Disease:** `{predicted_disease}`")
         st.markdown(f"**📊 Confidence:** `{confidence:.2f}%`")
 
         st.subheader("💊 Treatment Recommendation")
-        st.info(result["treatment"])
+        st.info(treatment)
     else:
         st.error("❌ Could not process the image. Please try a different one.")
 else:
