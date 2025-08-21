@@ -28,9 +28,20 @@ label_map, treatment_map = load_mappings()
 
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(uploaded_file):
-    img = Image.open(uploaded_file).convert("RGB").resize(IMG_SIZE)
+    img = Image.open(uploaded_file)
+
+    # Force RGB conversion BEFORE resizing
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+
+    img = img.resize(IMG_SIZE)
     img_array = np.asarray(img, dtype=np.float32) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
+
+    # Validate shape: should be (224, 224, 3)
+    if img_array.shape[-1] != 3:
+        raise ValueError(f"Expected 3 channels, got shape {img_array.shape}")
+
+    img_array = np.expand_dims(img_array, axis=0)  # Shape: (1, 224, 224, 3)
     return img_array, img
 
 # ---------------- STREAMLIT UI ----------------
