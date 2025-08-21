@@ -20,12 +20,14 @@ def load_mappings():
 label_map, treatment_map = load_mappings()
 
 # ---------------- PREPROCESS IMAGE ----------------
-IMG_SIZE = (224, 224)  # ✅ Correct size for your model
-
 def preprocess_image(uploaded_file):
     # Load image and force RGB conversion
     img = Image.open(uploaded_file)
-    img = img.convert("RGB")  # ✅ Ensure 3 channels
+    
+    # Convert to RGB (3 channels) if not already
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    
     img = img.resize(IMG_SIZE)
 
     # Convert to array and normalize
@@ -33,12 +35,21 @@ def preprocess_image(uploaded_file):
 
     # Validate shape
     if img_array.shape != (224, 224, 3):
-        raise ValueError(f"Invalid image shape: {img_array.shape}. Expected (224, 224, 3)")
+        # If somehow we still have wrong shape, convert to 3 channels
+        if len(img_array.shape) == 2:  # Grayscale
+            img_array = np.stack((img_array,) * 3, axis=-1)
+        elif img_array.shape[2] == 4:  # RGBA
+            img_array = img_array[:, :, :3]
+        
+        # Resize if needed
+        if img_array.shape[:2] != (224, 224):
+            img_pil = Image.fromarray((img_array * 255).astype(np.uint8))
+            img_pil = img_pil.resize((224, 224))
+            img_array = np.asarray(img_pil, dtype=np.float32) / 255.0
 
     # Add batch dimension
     img_array = np.expand_dims(img_array, axis=0)  # Shape: (1, 224, 224, 3)
     return img_array, img
-
 
 # ---------------- STREAMLIT UI ----------------
 st.set_page_config(page_title="Leaf Disease Detector", layout="centered")
@@ -79,5 +90,6 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"⚠️ Error during processing: {e}")
+        st.error("Please make sure you're uploading a valid image file.")
 else:
     st.info("Please upload a leaf image to begin.")
