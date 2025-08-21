@@ -29,9 +29,23 @@ def load_responses():
 
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(image):
-    image = image.convert("RGB").resize(IMG_SIZE)
+    # Ensure RGB mode
+    if image.mode != "RGB":
+        image = image.convert("RGB")
+
+    # Resize to match model input
+    image = image.resize((224, 224))
+
+    # Convert to NumPy array and normalize
     img_array = np.array(image, dtype=np.float32) / 255.0
+
+    # Add batch dimension
     img_array = np.expand_dims(img_array, axis=0)
+
+    # Final shape check (optional)
+    if img_array.shape != (1, 224, 224, 3):
+        raise ValueError(f"Invalid image shape: {img_array.shape}")
+
     return img_array
 
 # ---------------- STREAMLIT APP ----------------
