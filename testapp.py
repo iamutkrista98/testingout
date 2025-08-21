@@ -28,7 +28,7 @@ label_map, treatment_map = load_mappings()
 
 # ---------------- PREPROCESS IMAGE ----------------
 def preprocess_image(uploaded_file):
-    img = Image.open(uploaded_file).resize(IMG_SIZE).convert("RGB")
+    img = Image.open(uploaded_file).convert("RGB").resize(IMG_SIZE)
     img_array = np.asarray(img, dtype=np.float32) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
     return img_array, img
