@@ -15,7 +15,7 @@ st.title("🌿 Plant Leaf Disease Classifier")
 st.markdown("Upload a leaf image to detect disease and get treatment advice.")
 
 # ---------------- HUGGING FACE MODEL URL ----------------
-MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/clean_model1.keras"
+MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/testmodel.keras"
 EXCEL_PATH = "leaf_disease_responses.xlsx"
 
 # ---------------- DOWNLOAD MODEL ----------------
