@@ -5,6 +5,8 @@ from PIL import Image
 import keras
 import requests
 import io
+import tempfile
+import os
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Leaf Disease Detector", layout="centered")
@@ -28,7 +30,12 @@ def download_from_drive(drive_url):
 def load_model_from_drive(drive_url):
     model_bytes = download_from_drive(drive_url)
     if model_bytes:
-        return keras.models.load_model(model_bytes, compile=False)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".keras") as tmp_file:
+            tmp_file.write(model_bytes.read())
+            tmp_file_path = tmp_file.name
+        model = keras.models.load_model(tmp_file_path, compile=False)
+        os.remove(tmp_file_path)
+        return model
     return None
 
 # ---------------- LOAD LABELS & RESPONSES ----------------
@@ -65,10 +72,12 @@ def preprocess_image_grayscale(uploaded_file):
     return img_array, img
 
 # ---------------- UI INPUTS ----------------
-# ---------------- UI INPUTS ----------------
-model_url = st.text_input("🔗 Paste public Google Drive link to Keras model (.keras)", value="https://drive.google.com/file/d/1enLxaLvyPpJL1yuwDByVMmZMiAFQ6iGz/view")
+model_url = st.text_input("🔗 Paste public Google Drive link to Keras model (.keras)", 
+    value="https://drive.google.com/file/d/1enLxaLvyPpJL1yuwDByVMmZMiAFQ6iGz/view")
 
-excel_url = st.text_input("🔗 Paste public Google Drive link to Excel file (.xlsx)", value="https://drive.google.com/file/d/1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO/view")
+excel_url = st.text_input("🔗 Paste public Google Drive link to Excel file (.xlsx)", 
+    value="https://drive.google.com/file/d/1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO/view")
+
 uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", "png"])
 
 # ---------------- MAIN LOGIC ----------------
