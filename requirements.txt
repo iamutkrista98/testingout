@@ -3,6 +3,7 @@ tensorflow
 pillow
 pandas
 openpyxl
+matplotlib
 
 
 
