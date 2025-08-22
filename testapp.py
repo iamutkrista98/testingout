@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 import keras
+import matplotlib.pyplot as plt
 import os
 
 # ---------------- CONFIG ----------------
@@ -45,13 +46,36 @@ def preprocess_image(uploaded_file):
     img_array = np.expand_dims(img_array, axis=0)
     return img_array, img
 
-def preprocess_image_grayscale(uploaded_file):
-    img = Image.open(uploaded_file).convert("L")
-    img = img.resize((225, 225))
-    img_array = np.asarray(img, dtype=np.float32) / 255.0
-    img_array = np.expand_dims(img_array, axis=-1)
+# ---------------- PREDICTION VISUALIZATION ----------------
+def show_prediction_chart(img_path, model, class_dict):
+    labels = list(class_dict.values())
+    img = Image.open(img_path).convert("RGB")
+    resized_img = img.resize((224, 224))
+    img_array = np.asarray(resized_img, dtype=np.float32) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
-    return img_array, img
+
+    predictions = model.predict(img_array)
+    probs = list(predictions[0])
+
+    fig = plt.figure(figsize=(10, 12))
+    plt.subplot(2, 1, 1)
+    plt.imshow(resized_img)
+    plt.axis('off')
+    plt.title("Uploaded Leaf Image")
+
+    plt.subplot(2, 1, 2)
+    bars = plt.barh(labels, probs, color='mediumseagreen')
+    plt.xlabel('Prediction Confidence', fontsize=15)
+    ax = plt.gca()
+    ax.bar_label(bars, fmt='%.2f')
+    plt.tight_layout()
+
+    st.pyplot(fig)
+
+    top_idx = int(np.argmax(probs))
+    top_label = labels[top_idx]
+    confidence = float(probs[top_idx] * 100)
+    return top_label, confidence
 
 # ---------------- UI INPUT ----------------
 uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", "png"])
@@ -66,31 +90,21 @@ if uploaded_file:
         if not model or not label_map:
             st.error("❌ Failed to load model or mapping data.")
         else:
-            try:
-                img_array, display_img = preprocess_image(uploaded_file)
-                preds = model.predict(img_array)
-            except Exception as e:
-                st.warning(f"RGB preprocessing failed: {e}. Trying grayscale...")
-                img_array, display_img = preprocess_image_grayscale(uploaded_file)
-                preds = model.predict(img_array)
+            predicted_label, confidence = show_prediction_chart(uploaded_file, model, label_map)
 
-            predicted_idx = int(np.argmax(preds[0]))
-            confidence = float(np.max(preds[0]) * 100)
-
-            disease_info = full_info_map.get(predicted_idx, {
-                "disease_name": f"Unknown class {predicted_idx}",
-                "response_message": "No treatment information available."
-            })
+            # Lookup treatment info
+            treatment = full_info_map.get(
+                list(label_map.keys())[list(label_map.values()).index(predicted_label)],
+                {"response_message": "No treatment information available."}
+            )["response_message"]
 
             # ---------------- DISPLAY RESULTS ----------------
-            st.image(display_img, caption="📷 Uploaded Leaf", use_column_width=True)
-
             st.subheader("🔍 Prediction Results")
-            st.markdown(f"**Disease Name:** `{disease_info['disease_name']}`")
+            st.markdown(f"**Disease Name:** `{predicted_label}`")
             st.markdown(f"**Confidence:** `{confidence:.2f}%`")
 
             st.subheader("💊 Treatment Recommendation")
-            st.markdown(disease_info["response_message"])
+            st.markdown(treatment)
 
             st.success("✅ Diagnosis complete. Follow the treatment plan above.")
 
