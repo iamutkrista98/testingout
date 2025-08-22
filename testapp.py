@@ -14,7 +14,7 @@ st.markdown("<h1 style='text-align: center;'>🌿 Leaf Disease Classifier</h1>",
 st.markdown("<p style='text-align: center;'>Upload a leaf image to detect disease and get treatment advice.</p>", unsafe_allow_html=True)
 
 # ---------------- HUGGING FACE MODEL URL ----------------
-MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/testmodel.h5"
+MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/Plant_Village_Detection_Model.h5"
 EXCEL_PATH = "leaf_disease_responses.xlsx"
 
 # ---------------- DOWNLOAD MODEL ----------------
