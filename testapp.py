@@ -27,10 +27,11 @@ def download_from_drive(drive_url):
 
 # ---------------- LOAD MODEL ----------------
 @st.cache_resource
+@st.cache_resource
 def load_model_from_drive(drive_url):
     model_bytes = download_from_drive(drive_url)
     if model_bytes:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".keras") as tmp_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
             tmp_file.write(model_bytes.read())
             tmp_file_path = tmp_file.name
         model = keras.models.load_model(tmp_file_path, compile=False)
