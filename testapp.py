@@ -5,13 +5,12 @@ def run_leaf_disease_classifier():
     from PIL import Image
     import keras
     import requests
-    import io
     import tempfile
     import os
 
     # 🌿 App Header
     st.markdown("<h1 style='text-align: center;'>🌿 Leaf Disease Classifier</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center;'>Upload a leaf image to detect disease and get treatment advice.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>Upload or capture a leaf image to detect disease and get treatment advice.</p>", unsafe_allow_html=True)
 
     # 🔗 Remote model and local Excel mapping
     MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/testmodel.h5"
@@ -59,8 +58,16 @@ def run_leaf_disease_classifier():
         img_array = np.expand_dims(img_array, axis=0)
         return img_array, img
 
-    # 📤 Upload interface
-    uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", "png"])
+    # 📤 Image input options
+    st.markdown("### 📸 Choose Image Source")
+    input_method = st.radio("Select input method:", ["Upload from file", "Capture from camera"])
+    st.caption("📌 Tip: Make sure the leaf is well-lit and centered in the frame for best results.")
+
+    uploaded_file = None
+    if input_method == "Upload from file":
+        uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", "png"])
+    elif input_method == "Capture from camera":
+        uploaded_file = st.camera_input("📷 Take a photo of the leaf")
 
     # 🔍 Main classification logic
     if uploaded_file:
@@ -71,54 +78,56 @@ def run_leaf_disease_classifier():
 
             if not model or not label_map:
                 st.error("❌ Failed to load model or mapping data.")
-            else:
-                img_array, display_img = preprocess_image(uploaded_file)
+                return
 
-                # ✅ Validate input shape
-                if img_array.shape != (1, 224, 224, 3):
-                    st.error(f"❌ Invalid input shape: {img_array.shape}. Expected (1, 224, 224, 3).")
-                else:
-                    predictions = model.predict(img_array)
-                    top_idx = int(np.argmax(predictions[0]))
-                    confidence = float(np.max(predictions[0]) * 100)
-                    predicted_label = label_map.get(top_idx, f"Unknown class {top_idx}")
-                    treatment = full_info_map.get(top_idx, {"response_message": "No treatment information available."})["response_message"]
+            img_array, display_img = preprocess_image(uploaded_file)
 
-                    # 📸 Display uploaded image
-                    st.image(display_img, caption="📷 Uploaded Leaf", use_container_width=True)
+            # ✅ Validate input shape
+            if img_array.shape != (1, 224, 224, 3):
+                st.error(f"❌ Invalid input shape: {img_array.shape}. Expected (1, 224, 224, 3).")
+                return
 
-                    # 🧠 Prediction result
-                    st.markdown("---")
-                    st.markdown(f"<h3 style='color:#32CD32;'>🪴 Disease Detected: <strong>{predicted_label}</strong></h3>", unsafe_allow_html=True)
+            predictions = model.predict(img_array)
+            top_idx = int(np.argmax(predictions[0]))
+            confidence = float(np.max(predictions[0]) * 100)
+            predicted_label = label_map.get(top_idx, f"Unknown class {top_idx}")
+            treatment = full_info_map.get(top_idx, {"response_message": "No treatment information available."})["response_message"]
 
-                    # 📊 Confidence bar
-                    st.markdown("📊 **Confidence Level**")
-                    st.progress(confidence / 100)
-                    st.markdown(f"<p style='font-size:18px;'>Confidence: <strong>{confidence:.2f}%</strong></p>", unsafe_allow_html=True)
+            # 📸 Display uploaded image
+            st.image(display_img, caption="📷 Uploaded Leaf", use_container_width=True)
 
-                    # 💊 Treatment advice
-                    st.markdown("💊 **Treatment Recommendation**")
-                    st.markdown(f"""
-                        <div style='
-                            background-color: #1e1e1e;
-                            border-left: 6px solid #32CD32;
-                            padding: 15px;
-                            border-radius: 8px;
-                            color: #f0f0f0;
-                            font-size: 16px;
-                            line-height: 1.6;
-                        '>
-                            {treatment}
-                        </div>
-                    """, unsafe_allow_html=True)
+            # 🧠 Prediction result
+            st.markdown("---")
+            st.markdown(f"<h3 style='color:#32CD32;'>🪴 Disease Detected: <strong>{predicted_label}</strong></h3>", unsafe_allow_html=True)
 
-                    st.markdown("---")
-                    st.success("✅ Diagnosis complete. Follow the treatment plan above.")
+            # 📊 Confidence bar
+            st.markdown("📊 **Confidence Level**")
+            st.progress(confidence / 100)
+            st.markdown(f"<p style='font-size:18px;'>Confidence: <strong>{confidence:.2f}%</strong></p>", unsafe_allow_html=True)
+
+            # 💊 Treatment advice
+            st.markdown("💊 **Treatment Recommendation**")
+            st.markdown(f"""
+                <div style='
+                    background-color: #1e1e1e;
+                    border-left: 6px solid #32CD32;
+                    padding: 15px;
+                    border-radius: 8px;
+                    color: #f0f0f0;
+                    font-size: 16px;
+                    line-height: 1.6;
+                '>
+                    {treatment}
+                </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("---")
+            st.success("✅ Diagnosis complete. Follow the treatment plan above.")
 
         except Exception as e:
             st.error(f"⚠️ Error during processing: {e}")
     else:
-        st.info("Please upload a leaf image to begin.")
+        st.info("Please upload or capture a leaf image to begin.")
 
 
 # Run the app
