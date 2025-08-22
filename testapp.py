@@ -78,7 +78,7 @@ def preprocess_image_grayscale(uploaded_file):
 
 # ---------------- UI INPUTS ----------------
 model_url = st.text_input("🔗 Paste public Google Drive link to zipped SavedModel", 
-    value="https://drive.google.com/file/d/1enLxaLvyPpJL1yuwDByVMmZMiAFQ6iGz/view")
+    value="https://drive.google.com/file/d/1enLxaLvyPpJL1yuwDByVMmZMiAFQ6iGz/view?usp=drive_link")
 
 excel_url = st.text_input("🔗 Paste public Google Drive link to Excel file (.xlsx)", 
     value="https://drive.google.com/file/d/1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO/view")
