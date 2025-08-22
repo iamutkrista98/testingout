@@ -74,7 +74,7 @@ def preprocess_image_grayscale(uploaded_file):
 
 # ---------------- UI INPUTS ----------------
 model_url = st.text_input("🔗 Paste public Google Drive link to Keras model (.keras)", 
-    value="https://drive.google.com/file/d/1Ttkd63o8AMkSU5WToJd_aNUm3O9H5lny/view")
+    value="https://drive.google.com/file/d/1PsWiPaVBUP-T0X-r3B2uYlaiC3PLGMt6/view?usp=drive_link")
 
 excel_url = st.text_input("🔗 Paste public Google Drive link to Excel file (.xlsx)", 
     value="https://drive.google.com/file/d/1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO/view")
