@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 import keras
-import matplotlib.pyplot as plt
 import requests
 import io
 import tempfile
@@ -11,8 +10,8 @@ import os
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Leaf Disease Detector", layout="centered")
-st.title("🌿 Plant Leaf Disease Classifier")
-st.markdown("Upload a leaf image to detect disease and get treatment advice.")
+st.markdown("<h1 style='text-align: center;'>🌿 Leaf Disease Classifier</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>Upload a leaf image to detect disease and get treatment advice.</p>", unsafe_allow_html=True)
 
 # ---------------- HUGGING FACE MODEL URL ----------------
 MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/testmodel.h5"
@@ -60,32 +59,6 @@ def preprocess_image(uploaded_file):
     img_array = np.expand_dims(img_array, axis=0)
     return img_array, img
 
-# ---------------- PREDICTION VISUALIZATION ----------------
-def show_prediction_chart(img_array, display_img, model, class_dict):
-    labels = list(class_dict.values())
-    predictions = model.predict(img_array)
-    probs = list(predictions[0])
-
-    fig = plt.figure(figsize=(10, 12))
-    plt.subplot(2, 1, 1)
-    plt.imshow(display_img)
-    plt.axis('off')
-    plt.title("Uploaded Leaf Image")
-
-    plt.subplot(2, 1, 2)
-    bars = plt.barh(labels, probs, color='mediumseagreen')
-    plt.xlabel('Prediction Confidence', fontsize=15)
-    ax = plt.gca()
-    ax.bar_label(bars, fmt='%.2f')
-    plt.tight_layout()
-
-    st.pyplot(fig)
-
-    top_idx = int(np.argmax(probs))
-    top_label = labels[top_idx]
-    confidence = float(probs[top_idx] * 100)
-    return top_label, confidence
-
 # ---------------- UI INPUT ----------------
 uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", "png"])
 
@@ -104,20 +77,26 @@ if uploaded_file:
             if img_array.shape != (1, 224, 224, 3):
                 st.error(f"❌ Invalid input shape: {img_array.shape}. Expected (1, 224, 224, 3).")
             else:
-                predicted_label, confidence = show_prediction_chart(img_array, display_img, model, label_map)
+                predictions = model.predict(img_array)
+                top_idx = int(np.argmax(predictions[0]))
+                confidence = float(np.max(predictions[0]) * 100)
+                predicted_label = label_map.get(top_idx, f"Unknown class {top_idx}")
+                treatment = full_info_map.get(top_idx, {"response_message": "No treatment information available."})["response_message"]
 
-                treatment = full_info_map.get(
-                    list(label_map.keys())[list(label_map.values()).index(predicted_label)],
-                    {"response_message": "No treatment information available."}
-                )["response_message"]
+                # ---------------- DISPLAY RESULTS ----------------
+                st.image(display_img, caption="📷 Uploaded Leaf", use_column_width=True)
 
-                st.subheader("🔍 Prediction Results")
-                st.markdown(f"**Disease Name:** `{predicted_label}`")
-                st.markdown(f"**Confidence:** `{confidence:.2f}%`")
+                st.markdown("---")
+                st.markdown(f"<h3>🪴 Disease Detected: <span style='color:darkgreen'>{predicted_label}</span></h3>", unsafe_allow_html=True)
 
-                st.subheader("💊 Treatment Recommendation")
-                st.markdown(treatment)
+                st.markdown("📊 **Confidence Level**")
+                st.progress(confidence / 100)
+                st.markdown(f"<p style='font-size:18px;'>Confidence: <strong>{confidence:.2f}%</strong></p>", unsafe_allow_html=True)
 
+                st.markdown("💊 **Treatment Recommendation**")
+                st.markdown(f"<div style='background-color:#f0f8ff;padding:10px;border-radius:8px;'>{treatment}</div>", unsafe_allow_html=True)
+
+                st.markdown("---")
                 st.success("✅ Diagnosis complete. Follow the treatment plan above.")
 
     except Exception as e:
