@@ -14,13 +14,13 @@ st.set_page_config(page_title="Leaf Disease Detector", layout="centered")
 st.title("🌿 Plant Leaf Disease Classifier")
 st.markdown("Upload a leaf image to detect disease and get treatment advice.")
 
-# ---------------- GOOGLE DRIVE MODEL URL ----------------
-MODEL_URL = "https://drive.google.com/uc?export=download&id=1PsWiPaVBUP-T0X-r3B2uYlaiC3PLGMt6"
+# ---------------- HUGGING FACE MODEL URL ----------------
+MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/plant_disease_model.h5"
 EXCEL_PATH = "leaf_disease_responses.xlsx"
 
 # ---------------- DOWNLOAD MODEL ----------------
 @st.cache_resource
-def load_model_from_drive(url):
+def load_model_from_huggingface(url):
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -93,7 +93,7 @@ uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", 
 if uploaded_file:
     try:
         with st.spinner("🔄 Loading model and data..."):
-            model = load_model_from_drive(MODEL_URL)
+            model = load_model_from_huggingface(MODEL_URL)
             label_map, full_info_map = load_mappings()
 
         if not model or not label_map:
@@ -101,19 +101,16 @@ if uploaded_file:
         else:
             img_array, display_img = preprocess_image(uploaded_file)
 
-            # Validate input shape
             if img_array.shape != (1, 224, 224, 3):
                 st.error(f"❌ Invalid input shape: {img_array.shape}. Expected (1, 224, 224, 3).")
             else:
                 predicted_label, confidence = show_prediction_chart(img_array, display_img, model, label_map)
 
-                # Lookup treatment info
                 treatment = full_info_map.get(
                     list(label_map.keys())[list(label_map.values()).index(predicted_label)],
                     {"response_message": "No treatment information available."}
                 )["response_message"]
 
-                # ---------------- DISPLAY RESULTS ----------------
                 st.subheader("🔍 Prediction Results")
                 st.markdown(f"**Disease Name:** `{predicted_label}`")
                 st.markdown(f"**Confidence:** `{confidence:.2f}%`")
