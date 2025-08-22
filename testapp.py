@@ -73,10 +73,10 @@ def preprocess_image_grayscale(uploaded_file):
 
 # ---------------- UI INPUTS ----------------
 model_url = st.text_input("🔗 Paste public Google Drive link to .h5 model file", 
-    value="https://drive.google.com/file/d/1GN6B1Kpi3M8KYGm1CqWNxwqTs6nU51u8/view?usp=drive_link")
+    value="model_url = "https://drive.google.com/uc?id=1GN6B1Kpi3M8KYGm1CqWNxwqTs6nU51u8")
 
 excel_url = st.text_input("🔗 Paste public Google Drive link to Excel file (.xlsx)", 
-    value="https://drive.google.com/file/d/1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO/view")
+    value="https://drive.google.com/file/d/1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO")
 
 uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", "png"])
 
