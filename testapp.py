@@ -13,7 +13,7 @@ def run_leaf_disease_classifier():
     st.markdown("<p style='text-align: center;'>Upload or capture a leaf image to detect disease and get treatment advice.</p>", unsafe_allow_html=True)
 
     # 🔗 Remote model and local Excel mapping
-    MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/testmodel.h5"
+    MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/AlexNetModel.hdf5"
     EXCEL_PATH = "leaf_disease_responses.xlsx"
 
     # 📦 Load model from Hugging Face (cached for performance)
@@ -22,7 +22,7 @@ def run_leaf_disease_classifier():
         try:
             response = requests.get(url)
             response.raise_for_status()
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".h5") as tmp_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".hdf5") as tmp_file:
                 tmp_file.write(response.content)
                 tmp_path = tmp_file.name
             model = keras.models.load_model(tmp_path, compile=False)
