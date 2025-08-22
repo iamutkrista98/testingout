@@ -84,17 +84,29 @@ if uploaded_file:
                 treatment = full_info_map.get(top_idx, {"response_message": "No treatment information available."})["response_message"]
 
                 # ---------------- DISPLAY RESULTS ----------------
-                st.image(display_img, caption="📷 Uploaded Leaf", use_column_width=True)
+                st.image(display_img, caption="📷 Uploaded Leaf", use_container_width=True)
 
                 st.markdown("---")
-                st.markdown(f"<h3>🪴 Disease Detected: <span style='color:darkgreen'>{predicted_label}</span></h3>", unsafe_allow_html=True)
+                st.markdown(f"<h3 style='color:#32CD32;'>🪴 Disease Detected: <strong>{predicted_label}</strong></h3>", unsafe_allow_html=True)
 
                 st.markdown("📊 **Confidence Level**")
                 st.progress(confidence / 100)
                 st.markdown(f"<p style='font-size:18px;'>Confidence: <strong>{confidence:.2f}%</strong></p>", unsafe_allow_html=True)
 
                 st.markdown("💊 **Treatment Recommendation**")
-                st.markdown(f"<div style='background-color:#f0f8ff;padding:10px;border-radius:8px;'>{treatment}</div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                    <div style='
+                        background-color: #1e1e1e;
+                        border-left: 6px solid #32CD32;
+                        padding: 15px;
+                        border-radius: 8px;
+                        color: #f0f0f0;
+                        font-size: 16px;
+                        line-height: 1.6;
+                    '>
+                        {treatment}
+                    </div>
+                """, unsafe_allow_html=True)
 
                 st.markdown("---")
                 st.success("✅ Diagnosis complete. Follow the treatment plan above.")
