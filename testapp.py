@@ -15,7 +15,7 @@ st.title("🌿 Plant Leaf Disease Classifier")
 st.markdown("Upload a leaf image to detect disease and get treatment advice.")
 
 # ---------------- GOOGLE DRIVE MODEL URL ----------------
-MODEL_URL = "https://drive.google.com/uc?export=download&id=1enLxaLvyPpJL1yuwDByVMmZMiAFQ6iGz"
+MODEL_URL = "https://drive.google.com/uc?export=download&id=1GN6B1Kpi3M8KYGm1CqWNxwqTs6nU51u8"
 EXCEL_PATH = "leaf_disease_responses.xlsx"
 
 # ---------------- DOWNLOAD MODEL ----------------
