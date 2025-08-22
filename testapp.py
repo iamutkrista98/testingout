@@ -22,7 +22,6 @@ def download_from_drive(drive_url):
             file_id = drive_url.split("/d/")[1].split("/")[0]
         else:
             raise ValueError("Invalid Google Drive link format.")
-
         download_url = f"https://drive.google.com/uc?id={file_id}"
         response = requests.get(download_url)
         response.raise_for_status()
@@ -78,11 +77,8 @@ def preprocess_image_grayscale(uploaded_file):
     return img_array, img
 
 # ---------------- UI INPUTS ----------------
-model_url = st.text_input("🔗 Paste public Google Drive link to .h5 model file", 
-    value="https://drive.google.com/uc?id=1GN6B1Kpi3M8KYGm1CqWNxwqTs6nU51u8")
-
-excel_url = st.text_input("🔗 Paste public Google Drive link to Excel file (.xlsx)", 
-    value="https://drive.google.com/uc?id=1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO")
+model_url = st.text_input("🔗 Model URL", value="https://drive.google.com/uc?id=1GN6B1Kpi3M8KYGm1CqWNxwqTs6nU51u8")
+excel_url = st.text_input("🔗 Excel URL", value="https://drive.google.com/uc?id=1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO")
 
 uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", "png"])
 
