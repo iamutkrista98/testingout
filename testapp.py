@@ -3,106 +3,111 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 import keras
+import requests
+import io
 
 # ---------------- CONFIG ----------------
-MODEL_PATH = "clean_model1.keras"
-MAPPING_XLSX = "leaf_disease_responses.xlsx"
-
-# ---------------- LOAD MODEL ----------------
-@st.cache_resource
-def load_model():
-    model = keras.models.load_model(MODEL_PATH, compile=False)
-    return model
-
-# ---------------- LOAD LABELS & RESPONSES ----------------
-@st.cache_data
-def load_mappings():
-    try:
-        df = pd.read_excel(MAPPING_XLSX)
-        label_map = dict(zip(df["class_index"], df["disease_name"]))
-        treatment_map = dict(zip(df["disease_name"], df["response_message"]))
-        return label_map, treatment_map
-    except Exception as e:
-        st.error(f"Error loading Excel: {e}")
-        return {}, {}
-
-# ---------------- PREPROCESS IMAGE ----------------
-def preprocess_image(uploaded_file):
-    # First try with RGB (3 channels) - this is what your Colab code uses
-    img = Image.open(uploaded_file).convert("RGB")
-    img = img.resize((224, 224))  # Use 224x224 for RGB model
-    
-    # Convert to numpy array
-    img_array = np.asarray(img, dtype=np.float32) / 255.0
-    
-    # Add batch dimension
-    img_array = np.expand_dims(img_array, axis=0)
-    
-    return img_array, img
-
-# Alternative preprocessing if the above fails
-def preprocess_image_grayscale(uploaded_file):
-    # For grayscale model (1 channel)
-    img = Image.open(uploaded_file).convert("L")  # Convert to grayscale
-    img = img.resize((225, 225))  # Use 225x225 for grayscale model
-    
-    # Convert to numpy array
-    img_array = np.asarray(img, dtype=np.float32) / 255.0
-    
-    # Add channel dimension for grayscale
-    img_array = np.expand_dims(img_array, axis=-1)
-    
-    # Add batch dimension
-    img_array = np.expand_dims(img_array, axis=0)
-    
-    return img_array, img
-
-# ---------------- STREAMLIT UI ----------------
 st.set_page_config(page_title="Leaf Disease Detector", layout="centered")
 st.title("🌿 Plant Leaf Disease Classifier")
 st.markdown("Upload a leaf image to detect disease and get treatment advice.")
 
+# ---------------- GOOGLE DRIVE HELPERS ----------------
+def download_from_drive(drive_url):
+    try:
+        file_id = drive_url.split("/d/")[1].split("/")[0]
+        download_url = f"https://drive.google.com/uc?id={file_id}"
+        response = requests.get(download_url)
+        response.raise_for_status()
+        return io.BytesIO(response.content)
+    except Exception as e:
+        st.error(f"Failed to download from Google Drive: {e}")
+        return None
+
+# ---------------- LOAD MODEL ----------------
+@st.cache_resource
+def load_model_from_drive(drive_url):
+    model_bytes = download_from_drive(drive_url)
+    if model_bytes:
+        return keras.models.load_model(model_bytes, compile=False)
+    return None
+
+# ---------------- LOAD LABELS & RESPONSES ----------------
+@st.cache_data
+def load_mappings_from_drive(drive_url):
+    excel_bytes = download_from_drive(drive_url)
+    if excel_bytes:
+        df = pd.read_excel(excel_bytes)
+        label_map = dict(zip(df["class_index"], df["disease_name"]))
+        full_info_map = {
+            row["class_index"]: {
+                "disease_name": row["disease_name"],
+                "response_message": row["response_message"]
+            }
+            for _, row in df.iterrows()
+        }
+        return label_map, full_info_map
+    return {}, {}
+
+# ---------------- PREPROCESS IMAGE ----------------
+def preprocess_image(uploaded_file):
+    img = Image.open(uploaded_file).convert("RGB")
+    img = img.resize((224, 224))
+    img_array = np.asarray(img, dtype=np.float32) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+    return img_array, img
+
+def preprocess_image_grayscale(uploaded_file):
+    img = Image.open(uploaded_file).convert("L")
+    img = img.resize((225, 225))
+    img_array = np.asarray(img, dtype=np.float32) / 255.0
+    img_array = np.expand_dims(img_array, axis=-1)
+    img_array = np.expand_dims(img_array, axis=0)
+    return img_array, img
+
+# ---------------- UI INPUTS ----------------
+model_url = st.text_input("🔗 Paste public Google Drive link to Keras model (.keras)", "")
+excel_url = st.text_input("🔗 Paste public Google Drive link to Excel file (.xlsx)", "")
 uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", "png"])
 
-if uploaded_file:
+# ---------------- MAIN LOGIC ----------------
+if model_url and excel_url and uploaded_file:
     try:
-        with st.spinner("Loading model and processing image..."):
-            # Load model and mappings
-            model = load_model()
-            label_map, treatment_map = load_mappings()
-            
-            # Try RGB preprocessing first (like your Colab code)
+        with st.spinner("🔄 Loading model and data..."):
+            model = load_model_from_drive(model_url)
+            label_map, full_info_map = load_mappings_from_drive(excel_url)
+
+        if not model or not label_map:
+            st.error("❌ Failed to load model or mapping data.")
+        else:
             try:
                 img_array, display_img = preprocess_image(uploaded_file)
-                st.write(f"Trying RGB preprocessing, image shape: {img_array.shape}")
                 preds = model.predict(img_array)
             except Exception as e:
-                st.write(f"RGB failed: {e}, trying grayscale...")
-                # If RGB fails, try grayscale
+                st.warning(f"RGB preprocessing failed: {e}. Trying grayscale...")
                 img_array, display_img = preprocess_image_grayscale(uploaded_file)
-                st.write(f"Trying grayscale preprocessing, image shape: {img_array.shape}")
                 preds = model.predict(img_array)
-            
+
             predicted_idx = int(np.argmax(preds[0]))
             confidence = float(np.max(preds[0]) * 100)
 
-            predicted_disease = label_map.get(predicted_idx, f"Unknown class {predicted_idx}")
-            treatment = treatment_map.get(predicted_disease, "No treatment information available.")
+            disease_info = full_info_map.get(predicted_idx, {
+                "disease_name": f"Unknown class {predicted_idx}",
+                "response_message": "No treatment information available."
+            })
 
-        # ---------------- DISPLAY RESULTS ----------------
-        st.image(display_img, caption="Uploaded Leaf", use_column_width=True)
-        
-        st.subheader("🔍 Prediction Results")
-        st.markdown(f"**Disease:** {predicted_disease}")
-        st.markdown(f"**Confidence:** {confidence:.2f}%")
+            # ---------------- DISPLAY RESULTS ----------------
+            st.image(display_img, caption="📷 Uploaded Leaf", use_column_width=True)
 
-        st.subheader("💊 Treatment Recommendation")
-        st.markdown(treatment)
+            st.subheader("🔍 Prediction Results")
+            st.markdown(f"**Disease Name:** `{disease_info['disease_name']}`")
+            st.markdown(f"**Confidence:** `{confidence:.2f}%`")
 
-        st.success("Diagnosis complete. Follow the treatment plan above.")
+            st.subheader("💊 Treatment Recommendation")
+            st.markdown(disease_info["response_message"])
+
+            st.success("✅ Diagnosis complete. Follow the treatment plan above.")
 
     except Exception as e:
         st.error(f"⚠️ Error during processing: {e}")
-        st.info("Please make sure you're uploading a valid image file.")
 else:
-    st.info("Please upload a leaf image to begin.")
+    st.info("Please upload a leaf image and provide both Google Drive links to begin.")
