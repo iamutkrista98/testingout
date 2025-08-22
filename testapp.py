@@ -47,19 +47,14 @@ def preprocess_image(uploaded_file):
     return img_array, img
 
 # ---------------- PREDICTION VISUALIZATION ----------------
-def show_prediction_chart(img_path, model, class_dict):
+def show_prediction_chart(img_array, display_img, model, class_dict):
     labels = list(class_dict.values())
-    img = Image.open(img_path).convert("RGB")
-    resized_img = img.resize((224, 224))
-    img_array = np.asarray(resized_img, dtype=np.float32) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
-
     predictions = model.predict(img_array)
     probs = list(predictions[0])
 
     fig = plt.figure(figsize=(10, 12))
     plt.subplot(2, 1, 1)
-    plt.imshow(resized_img)
+    plt.imshow(display_img)
     plt.axis('off')
     plt.title("Uploaded Leaf Image")
 
@@ -90,23 +85,29 @@ if uploaded_file:
         if not model or not label_map:
             st.error("❌ Failed to load model or mapping data.")
         else:
-            predicted_label, confidence = show_prediction_chart(uploaded_file, model, label_map)
+            img_array, display_img = preprocess_image(uploaded_file)
 
-            # Lookup treatment info
-            treatment = full_info_map.get(
-                list(label_map.keys())[list(label_map.values()).index(predicted_label)],
-                {"response_message": "No treatment information available."}
-            )["response_message"]
+            # Validate input shape
+            if img_array.shape != (1, 224, 224, 3):
+                st.error(f"❌ Invalid input shape: {img_array.shape}. Expected (1, 224, 224, 3).")
+            else:
+                predicted_label, confidence = show_prediction_chart(img_array, display_img, model, label_map)
 
-            # ---------------- DISPLAY RESULTS ----------------
-            st.subheader("🔍 Prediction Results")
-            st.markdown(f"**Disease Name:** `{predicted_label}`")
-            st.markdown(f"**Confidence:** `{confidence:.2f}%`")
+                # Lookup treatment info
+                treatment = full_info_map.get(
+                    list(label_map.keys())[list(label_map.values()).index(predicted_label)],
+                    {"response_message": "No treatment information available."}
+                )["response_message"]
 
-            st.subheader("💊 Treatment Recommendation")
-            st.markdown(treatment)
+                # ---------------- DISPLAY RESULTS ----------------
+                st.subheader("🔍 Prediction Results")
+                st.markdown(f"**Disease Name:** `{predicted_label}`")
+                st.markdown(f"**Confidence:** `{confidence:.2f}%`")
 
-            st.success("✅ Diagnosis complete. Follow the treatment plan above.")
+                st.subheader("💊 Treatment Recommendation")
+                st.markdown(treatment)
+
+                st.success("✅ Diagnosis complete. Follow the treatment plan above.")
 
     except Exception as e:
         st.error(f"⚠️ Error during processing: {e}")
