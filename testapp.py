@@ -14,7 +14,7 @@ st.markdown("<h1 style='text-align: center;'>🌿 Leaf Disease Classifier</h1>",
 st.markdown("<p style='text-align: center;'>Upload a leaf image to detect disease and get treatment advice.</p>", unsafe_allow_html=True)
 
 # ---------------- HUGGING FACE MODEL URL ----------------
-MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/Plant_Village_Detection_Model.h5"
+MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/testmodel.keras"
 EXCEL_PATH = "leaf_disease_responses.xlsx"
 
 # ---------------- DOWNLOAD MODEL ----------------
@@ -23,7 +23,7 @@ def load_model_from_huggingface(url):
     try:
         response = requests.get(url)
         response.raise_for_status()
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".h5") as tmp_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".keras") as tmp_file:
             tmp_file.write(response.content)
             tmp_path = tmp_file.name
         model = keras.models.load_model(tmp_path, compile=False)
