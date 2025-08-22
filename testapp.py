@@ -2,11 +2,12 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 from PIL import Image
-import keras
+from keras.layers import TFSMLayer
 import requests
 import io
 import tempfile
 import os
+import zipfile
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Leaf Disease Detector", layout="centered")
@@ -27,16 +28,19 @@ def download_from_drive(drive_url):
 
 # ---------------- LOAD MODEL ----------------
 @st.cache_resource
-@st.cache_resource
 def load_model_from_drive(drive_url):
     model_bytes = download_from_drive(drive_url)
     if model_bytes:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
-            tmp_file.write(model_bytes.read())
-            tmp_file_path = tmp_file.name
-        model = keras.models.load_model(tmp_file_path, compile=False)
-        os.remove(tmp_file_path)
-        return model
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            zip_path = os.path.join(tmp_dir, "model.zip")
+            with open(zip_path, "wb") as f:
+                f.write(model_bytes.read())
+
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(tmp_dir)
+
+            model = TFSMLayer(tmp_dir, call_endpoint="serving_default")
+            return model
     return None
 
 # ---------------- LOAD LABELS & RESPONSES ----------------
@@ -73,8 +77,8 @@ def preprocess_image_grayscale(uploaded_file):
     return img_array, img
 
 # ---------------- UI INPUTS ----------------
-model_url = st.text_input("🔗 Paste public Google Drive link to Keras model (.keras)", 
-    value="https://drive.google.com/file/d/1PsWiPaVBUP-T0X-r3B2uYlaiC3PLGMt6/view?usp=drive_link")
+model_url = st.text_input("🔗 Paste public Google Drive link to zipped SavedModel", 
+    value="https://drive.google.com/file/d/1enLxaLvyPpJL1yuwDByVMmZMiAFQ6iGz/view")
 
 excel_url = st.text_input("🔗 Paste public Google Drive link to Excel file (.xlsx)", 
     value="https://drive.google.com/file/d/1dJbbLx348xTBiOCh4ywW-qAcfNhqbrVO/view")
@@ -93,14 +97,14 @@ if model_url and excel_url and uploaded_file:
         else:
             try:
                 img_array, display_img = preprocess_image(uploaded_file)
-                preds = model.predict(img_array)
+                preds = model(img_array)
             except Exception as e:
                 st.warning(f"RGB preprocessing failed: {e}. Trying grayscale...")
                 img_array, display_img = preprocess_image_grayscale(uploaded_file)
-                preds = model.predict(img_array)
+                preds = model(img_array)
 
-            predicted_idx = int(np.argmax(preds[0]))
-            confidence = float(np.max(preds[0]) * 100)
+            predicted_idx = int(np.argmax(preds.numpy()[0]))
+            confidence = float(np.max(preds.numpy()[0]) * 100)
 
             disease_info = full_info_map.get(predicted_idx, {
                 "disease_name": f"Unknown class {predicted_idx}",
