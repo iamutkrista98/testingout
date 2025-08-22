@@ -4,6 +4,9 @@ import pandas as pd
 from PIL import Image
 import keras
 import matplotlib.pyplot as plt
+import requests
+import io
+import tempfile
 import os
 
 # ---------------- CONFIG ----------------
@@ -11,14 +14,25 @@ st.set_page_config(page_title="Leaf Disease Detector", layout="centered")
 st.title("🌿 Plant Leaf Disease Classifier")
 st.markdown("Upload a leaf image to detect disease and get treatment advice.")
 
-# ---------------- FILE PATHS ----------------
-MODEL_PATH = "clean_model1.keras"
+# ---------------- GOOGLE DRIVE MODEL URL ----------------
+MODEL_URL = "https://drive.google.com/uc?export=download&id=1enLxaLvyPpJL1yuwDByVMmZMiAFQ6iGz"
 EXCEL_PATH = "leaf_disease_responses.xlsx"
 
-# ---------------- LOAD MODEL ----------------
+# ---------------- DOWNLOAD MODEL ----------------
 @st.cache_resource
-def load_model():
-    return keras.models.load_model(MODEL_PATH, compile=False)
+def load_model_from_drive(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".keras") as tmp_file:
+            tmp_file.write(response.content)
+            tmp_path = tmp_file.name
+        model = keras.models.load_model(tmp_path, compile=False)
+        os.remove(tmp_path)
+        return model
+    except Exception as e:
+        st.error(f"❌ Failed to load model: {e}")
+        return None
 
 # ---------------- LOAD LABELS & RESPONSES ----------------
 @st.cache_data
@@ -35,7 +49,7 @@ def load_mappings():
         }
         return label_map, full_info_map
     except Exception as e:
-        st.error(f"Error loading Excel file: {e}")
+        st.error(f"❌ Error loading Excel file: {e}")
         return {}, {}
 
 # ---------------- PREPROCESS IMAGE ----------------
@@ -79,7 +93,7 @@ uploaded_file = st.file_uploader("📤 Upload Leaf Image", type=["jpg", "jpeg", 
 if uploaded_file:
     try:
         with st.spinner("🔄 Loading model and data..."):
-            model = load_model()
+            model = load_model_from_drive(MODEL_URL)
             label_map, full_info_map = load_mappings()
 
         if not model or not label_map:
