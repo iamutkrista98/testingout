@@ -12,8 +12,17 @@ def run_leaf_disease_classifier():
     st.markdown("<h1 style='text-align: center;'>🌿 Leaf Disease Identifier</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>Upload or capture a leaf image to detect disease, severity, and get treatment advice.</p>", unsafe_allow_html=True)
 
+    # 🔗 Multiple model sources
+MODEL_SOURCES = {
+    "Default Model (CNN 20 Epochs)": "https://huggingface.co/iamutkrista98/testing/resolve/main/aidhunikkrishimodel1.keras",
+    "Experimental Model (CNN 40 Epochs)": "https://huggingface.co/iamutkrista98/testing/resolve/main/aidhunikkrishimodel2.keras",
+}
+
+st.markdown("### 🧠 Select Model Version")
+selected_model_name = st.selectbox("Choose a model for classification:", list(MODEL_SOURCES.keys()))
+MODEL_URL = MODEL_SOURCES[selected_model_name]
+
     # 🔗 Remote model and local Excel mapping
-    MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/aidhunikkrishimodel1.keras"
     EXCEL_PATH = "leaf_disease_responses.xlsx"
     CONFIDENCE_THRESHOLD = 60.0
 
