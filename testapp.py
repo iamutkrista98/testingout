@@ -24,7 +24,7 @@ def run_leaf_disease_classifier():
 
     # 🔗 Remote model and local Excel mapping
     EXCEL_PATH = "leaf_disease_responses.xlsx"
-    CONFIDENCE_THRESHOLD = 60.0
+    CONFIDENCE_THRESHOLD = 70.0
 
     # 📦 Load model
     @st.cache_resource
