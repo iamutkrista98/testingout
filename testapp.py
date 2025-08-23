@@ -13,7 +13,7 @@ def run_leaf_disease_classifier():
     st.markdown("<p style='text-align: center;'>Upload or capture a leaf image to detect disease, severity, and get treatment advice.</p>", unsafe_allow_html=True)
 
     # 🔗 Remote model and local Excel mapping
-    MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/aidhunikkrishimodel.keras"
+    MODEL_URL = "https://huggingface.co/iamutkrista98/testing/resolve/main/aidhunikkrishimodel1.keras"
     EXCEL_PATH = "leaf_disease_responses.xlsx"
     CONFIDENCE_THRESHOLD = 60.0
 
