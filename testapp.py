@@ -15,7 +15,7 @@ def run_leaf_disease_classifier():
     # 🔗 Multiple model sources
     MODEL_SOURCES = {
         "Default Model (CNN 20 Epochs)": "https://huggingface.co/iamutkrista98/testing/resolve/main/aidhunikkrishimodel1.keras",
-        "Experimental Model (CNN 40 Epochs)": "https://huggingface.co/iamutkrista98/testing/resolve/main/aidhunikkrishimodel2.keras",
+        "Experimental Updated Model (CNN 40 Epochs)": "https://huggingface.co/iamutkrista98/testing/blob/main/aidhunikkrishimodel23.keras",
     }
     
     st.markdown("### 🧠 Select Model Version")
